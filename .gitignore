@@ -1,0 +1,28 @@
+# Data
+data/raw/
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/processed/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# IDE / Obsidian
+.obsidian/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models
+*.joblib
+*.pkl
