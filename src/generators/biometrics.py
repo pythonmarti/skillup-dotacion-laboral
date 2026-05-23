@@ -3,7 +3,56 @@
 import numpy as np
 import pandas as pd
 
-from config.settings import PHYSIO_RANGES, PLANT_AREAS
+from config.settings import PHYSIO_RANGES, PLANT_AREAS, ABSENCE_REASONS
+
+
+def _generate_health_events(employees_df: pd.DataFrame, days: int, seed: int = 42) -> dict:
+    """Pre-determina eventos de enfermedad e incubación para cada empleado.
+    
+    Retorna un diccionario emp_id -> (states, reason_arr)
+    Donde states es un array de tamaño 'days' con valores:
+      - 0: normal
+      - 1: incubación (2 días antes)
+      - 2: incubación (1 día antes)
+      - 3: enfermo/ausente
+    """
+    rng = np.random.default_rng(seed)
+    reasons = list(ABSENCE_REASONS.keys())
+    reason_weights = np.array([ABSENCE_REASONS[r]["weight"] for r in reasons])
+    reason_weights = reason_weights / reason_weights.sum()
+    
+    events = {}
+    for emp_id in employees_df["employee_id"]:
+        states = np.zeros(days, dtype=int)
+        reason_arr = [""] * days
+        
+        day = 0
+        while day < days:
+            # Probabilidad de enfermarse en un día cualquiera: ~0.012
+            if rng.random() < 0.012:
+                reason = rng.choice(reasons, p=reason_weights)
+                avg_days = ABSENCE_REASONS[reason]["avg_days"]
+                # Duración de la enfermedad
+                dur = int(rng.poisson(avg_days - 1) + 1)
+                
+                # Definir fase de incubación (hasta 2 días antes de enfermarse)
+                for inc_idx, inc_day in enumerate([day - 2, day - 1]):
+                    if 0 <= inc_day < days:
+                        if states[inc_day] != 3: # Solo si no está enfermo ya
+                            states[inc_day] = inc_idx + 1 # 1 o 2
+                
+                # Definir fase de enfermedad
+                for sick_day in range(day, min(day + dur, days)):
+                    states[sick_day] = 3
+                    reason_arr[sick_day] = reason
+                
+                # Período refractario de 5 días antes de poder enfermarse de nuevo
+                day += dur + 5
+            else:
+                day += 1
+                
+        events[emp_id] = (states, reason_arr)
+    return events
 
 
 def _build_baselines(employees_df: pd.DataFrame, rng: np.random.Generator) -> dict:
@@ -67,7 +116,8 @@ def generate_biometrics(
 ) -> pd.DataFrame:
     """Genera series temporales de datos biométricos diarios.
 
-    Incluye autocorrelación temporal y efectos contextuales de turno/área.
+    Incluye autocorrelación temporal y efectos contextuales de turno/área,
+    así como fases de incubación y enfermedad reales.
 
     Parameters
     ----------
@@ -87,6 +137,9 @@ def generate_biometrics(
     rng = np.random.default_rng(seed)
     baselines = _build_baselines(employees_df, rng)
 
+    # Pre-generar eventos de enfermedad
+    health_events = _generate_health_events(employees_df, days, seed)
+
     # Indexar work_records para lookup rápido
     wr_idx = work_records_df.set_index(["employee_id", "date"])
 
@@ -100,8 +153,10 @@ def generate_biometrics(
     prev = {}
 
     all_dates = sorted(work_records_df["date"].unique())[:days]
+    date_to_idx = {d: i for i, d in enumerate(all_dates)}
 
     for date in all_dates:
+        day_idx = date_to_idx[date]
         for emp_id, bl in baselines.items():
             area = emp_area[emp_id]
             area_info = PLANT_AREAS[area]
@@ -132,6 +187,28 @@ def generate_biometrics(
                 hr_adj += 8
                 temp_adj += 0.4
 
+            # --- Ajustes por estado de salud ---
+            states, reason_arr = health_events[emp_id]
+            state = states[day_idx]
+            reason = reason_arr[day_idx]
+
+            sleep_hours_adj = 0.0
+            steps_override = None
+
+            if state in (1, 2):  # Incubación (1-2 días antes de ausentarse)
+                hr_adj += rng.uniform(4.0, 8.0)
+                spo2_adj -= rng.uniform(0.2, 0.5)
+                temp_adj += rng.uniform(0.1, 0.3)
+                stress_adj += rng.uniform(10.0, 20.0)
+                sleep_hours_adj -= rng.uniform(1.0, 2.0)
+            elif state == 3:  # Enfermedad
+                hr_adj += rng.uniform(10.0, 18.0)
+                spo2_adj -= rng.uniform(0.6, 1.5)
+                temp_adj += rng.uniform(0.3, 0.6)
+                stress_adj += rng.uniform(25.0, 40.0)
+                sleep_hours_adj -= rng.uniform(2.0, 3.5)
+                steps_override = int(rng.uniform(500, 2000))
+
             # --- Generar valores con autocorrelación ---
             prev_vals = prev.get(emp_id, None)
 
@@ -151,6 +228,11 @@ def generate_biometrics(
             target_hrv = bl["hrv_base"] + rng.normal(0, 5)
             if shift == "nocturno":
                 target_hrv -= 5
+            if state in (1, 2):
+                target_hrv -= rng.uniform(8.0, 15.0)
+            elif state == 3:
+                target_hrv -= rng.uniform(15.0, 25.0)
+
             if prev_vals:
                 hrv = autocorr * prev_vals["hrv"] + (1 - autocorr) * target_hrv
             else:
@@ -177,6 +259,7 @@ def generate_biometrics(
             # Sueño
             sleep_adj = -1.0 if shift == "nocturno" else 0.0
             sleep_adj += 1.0 if is_rest else 0.0
+            sleep_adj += sleep_hours_adj
             target_sleep = bl["sleep_base"] + sleep_adj + rng.normal(0, 0.8)
             if prev_vals:
                 sleep_dur = autocorr * prev_vals["sleep_dur"] + (1 - autocorr) * target_sleep
@@ -184,8 +267,15 @@ def generate_biometrics(
                 sleep_dur = target_sleep
             sleep_dur = _clip_physio(sleep_dur, "sleep_duration_hours")
 
-            sleep_eff = float(np.clip(rng.normal(82, 8), 40, 100))
-            deep_sleep = float(np.clip(rng.normal(20, 5), 5, 40))
+            if state in (1, 2):
+                sleep_eff = float(np.clip(rng.normal(70, 8), 35, 90))
+                deep_sleep = float(np.clip(rng.normal(12, 3), 3, 20))
+            elif state == 3:
+                sleep_eff = float(np.clip(rng.normal(60, 10), 30, 80))
+                deep_sleep = float(np.clip(rng.normal(8, 3), 0, 15))
+            else:
+                sleep_eff = float(np.clip(rng.normal(82, 8), 40, 100))
+                deep_sleep = float(np.clip(rng.normal(20, 5), 5, 40))
 
             # Estrés
             target_stress = bl["stress_base"] + stress_adj + rng.normal(0, 8)
@@ -196,12 +286,15 @@ def generate_biometrics(
             stress = _clip_physio(stress, "stress_score")
 
             # Steps
-            step_mult = 0.4 if is_rest else 1.0
-            target_steps = bl["steps_base"] * step_mult + rng.normal(0, 1000)
-            if prev_vals:
-                steps = autocorr * prev_vals["steps"] + (1 - autocorr) * target_steps
+            if steps_override is not None:
+                steps = steps_override
             else:
-                steps = target_steps
+                step_mult = 0.4 if is_rest else 1.0
+                target_steps = bl["steps_base"] * step_mult + rng.normal(0, 1000)
+                if prev_vals:
+                    steps = autocorr * prev_vals["steps"] + (1 - autocorr) * target_steps
+                else:
+                    steps = target_steps
             steps = _clip_physio(steps, "steps")
 
             # Data quality: 5-10% con score bajo
@@ -238,6 +331,8 @@ def generate_biometrics(
                 "stress_score": round(stress, 1),
                 "steps": int(steps),
                 "data_quality_score": data_quality,
+                "_is_sick": 1 if state == 3 else 0,
+                "_absence_reason": reason,
             })
 
     return pd.DataFrame(records)

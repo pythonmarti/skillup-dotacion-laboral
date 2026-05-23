@@ -75,9 +75,10 @@ CREATE TABLE IF NOT EXISTS work_records (
 );
 
 CREATE TABLE IF NOT EXISTS ml_features (
-    employee_id TEXT,
+    plant_area TEXT,
+    shift TEXT,
     date TEXT,
-    PRIMARY KEY (employee_id, date)
+    PRIMARY KEY (plant_area, shift, date)
 );
 """
 

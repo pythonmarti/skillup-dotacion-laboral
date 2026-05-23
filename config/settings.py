@@ -47,6 +47,15 @@ SHIFTS = {
     "nocturno": {"start": 22, "end": 6, "fatigue_factor": 1.3},
 }
 
+# --- Staffing requirements per area and shift ---
+REQUIRED_STAFF = {
+    "destilacion": {"diurno": 10, "vespertino": 8, "nocturno": 6},
+    "cracking": {"diurno": 12, "vespertino": 10, "nocturno": 8},
+    "almacenamiento": {"diurno": 6, "vespertino": 4, "nocturno": 2},
+    "mantenimiento": {"diurno": 8, "vespertino": 6, "nocturno": 3},
+    "oficinas": {"diurno": 5, "vespertino": 1, "nocturno": 0},
+}
+
 # --- Positions per area ---
 POSITIONS = {
     "destilacion": ["operador_campo", "operador_panel", "supervisor"],

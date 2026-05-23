@@ -37,7 +37,7 @@ def temporal_train_test_split(df, date_col="date", test_ratio=0.2):
 
 
 def prepare_feature_matrix(db_path=None):
-    """Lee ml_features de SQLite y prepara X, y para entrenamiento.
+    """Lee ml_features de SQLite y prepara X, y para entrenamiento a nivel de dotacion.
 
     Returns
     -------
@@ -49,52 +49,28 @@ def prepare_feature_matrix(db_path=None):
     # Ordenar temporalmente
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"])
-        df = df.sort_values(["date", "employee_id"]).reset_index(drop=True)
+        sort_cols = ["date"]
+        if "plant_area" in df.columns:
+            sort_cols.append("plant_area")
+        if "shift" in df.columns:
+            sort_cols.append("shift")
+        df = df.sort_values(sort_cols).reset_index(drop=True)
 
     # Columnas categoricas a one-hot
-    categorical_cols = [
-        "plant_area", "shift", "position", "gender",
-        "shift_pattern", "area_assigned",
-    ]
-    if "absence_reason" in df.columns:
-        categorical_cols.append("absence_reason")
-
+    categorical_cols = ["plant_area", "shift"]
     existing_cats = [c for c in categorical_cols if c in df.columns]
     df = pd.get_dummies(df, columns=existing_cats, drop_first=False, dtype=float)
 
-    # Interaction terms: workload_score * variables de area de riesgo
-    risk_cols = [c for c in df.columns if c.startswith("plant_area_")]
-    if "workload_score" in df.columns:
-        for col in risk_cols:
-            df[f"workload_x_{col}"] = df["workload_score"] * df[col]
-
-    # Ratios e interacciones biometricas
-    if "hr_mean_bpm" in df.columns and "hrv_rmssd_ms" in df.columns:
-        df["hr_hrv_ratio"] = df["hr_mean_bpm"] / (df["hrv_rmssd_ms"] + 1)
-
-    if "sleep_efficiency_pct" in df.columns and "stress_score" in df.columns:
-        df["sleep_stress_interaction"] = df["sleep_efficiency_pct"] * df["stress_score"]
-
-    if "sleep_duration_hours" in df.columns and "stress_score" in df.columns:
-        df["sleep_debt_x_stress"] = (7 - df["sleep_duration_hours"]).clip(lower=0) * df["stress_score"]
-
-    if "workload_score" in df.columns and "stress_score" in df.columns:
-        df["workload_x_stress"] = df["workload_score"] * df["stress_score"]
-
-    if "consecutive_work_days" in df.columns and "fatigue_14d" in df.columns:
-        df["consec_x_fatigue"] = df["consecutive_work_days"] * df["fatigue_14d"]
-
     # Separar targets
-    target_class = "absent_next_7days"
-    target_reg = "absence_hours_next_7days"
+    target_class = "has_deficit"
+    target_reg = "actual_headcount"
 
     y_class = df[target_class].astype(int) if target_class in df.columns else None
     y_reg = df[target_reg] if target_reg in df.columns else None
 
     # Drop columnas no-features
     drop_cols = [
-        "employee_id", "date", "name", "hire_date",
-        target_class, target_reg,
+        "date", target_class, target_reg, "deficit_count", "absentee_rate"
     ]
     drop_cols = [c for c in drop_cols if c in df.columns]
     X = df.drop(columns=drop_cols)

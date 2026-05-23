@@ -99,44 +99,35 @@ def generate_absenteeism(
                 hrv = 40
                 sleep = 7
 
-            # --- Calcular probabilidad con modificadores multiplicativos ---
-            prob = base_prob
+            # --- Determinar si hay ausencia basado en estado de salud ---
+            # Si el biométrico indica que está enfermo (_is_sick == 1), es una ausencia médica.
+            # También dejamos una probabilidad muy baja de ausencia casual no médica.
+            is_sick = 0
+            absence_reason = ""
+            try:
+                is_sick = int(bio.get("_is_sick", 0))
+                absence_reason = bio.get("_absence_reason", "")
+            except Exception:
+                pass
 
-            if bmi > 30:
-                prob *= 1.4
-            if night_streak.get(emp_id, 0) > 5:
-                prob *= 1.3
-            if stress > 70:
-                prob *= 1.25
-            if hrv < 20:
-                prob *= 1.2
-            if sleep < 5:
-                prob *= 1.35
-            if is_monday_or_friday:
-                prob *= 1.15
-            if distance > 50:
-                prob *= 1.1
-            if children > 2:
-                prob *= 1.1
-            if workload > 80:
-                prob *= 1.15
-            if area_info.get("risk_level") == "alto":
-                prob *= 1.2
+            is_absent = False
+            reason = ""
 
-            # Clamp a máximo razonable
-            prob = min(prob, 0.5)
+            if is_sick == 1:
+                is_absent = True
+                reason = absence_reason if absence_reason else "otros"
+            elif rng.random() < 0.003:  # Ausencia casual no médica
+                is_absent = True
+                reason = "otros"
 
-            # Determinar si hay ausencia
-            if rng.random() < prob:
-                reason = rng.choice(reasons, p=reason_weights)
-                # Horas de ausencia: log-normal(ln(6.92), 0.8) clipped [1, 40]
-                absence_hours = float(np.clip(rng.lognormal(np.log(6.92), 0.8), 1, 40))
-
+            if is_absent:
+                # Horas de ausencia: se pierde el turno completo (ej. uniform 7.5 a 8.5 horas)
+                absence_hours = round(float(rng.uniform(7.5, 8.5)), 1)
                 records.append({
                     "employee_id": emp_id,
                     "date": date,
                     "absence_reason": reason,
-                    "absence_hours": round(absence_hours, 1),
+                    "absence_hours": absence_hours,
                     "is_absent": 1,
                 })
 

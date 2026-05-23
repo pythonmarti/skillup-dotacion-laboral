@@ -308,6 +308,88 @@ def create_target_variable(merged_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def aggregate_to_staffing_level(merged_individual_df: pd.DataFrame) -> pd.DataFrame:
+    """Agrega las variables individuales a nivel de Área-Turno-Día."""
+    df = merged_individual_df.copy()
+    
+    # Nos quedamos solo con los registros donde el empleado estaba programado para trabajar
+    # (is_rest_day == 0)
+    scheduled_df = df[df["is_rest_day"] == 0].copy()
+    
+    if scheduled_df.empty:
+        logger.warning("No hay registros programados para agregar.")
+        return pd.DataFrame()
+        
+    # Asegurar que date sea string consistente para agrupación
+    scheduled_df["date"] = pd.to_datetime(scheduled_df["date"]).dt.strftime("%Y-%m-%d")
+    
+    # Definir variables de agregación a nivel de (date, shift, plant_area)
+    group_cols = ["date", "shift", "plant_area"]
+    
+    # Para el target, necesitamos calcular:
+    # 1. scheduled_headcount: total de empleados programados
+    # 2. actual_headcount: total de empleados que asistieron (is_absent es NaN o 0)
+    scheduled_df["is_absent"] = scheduled_df["is_absent"].fillna(0).astype(int)
+    scheduled_df["is_present"] = 1 - scheduled_df["is_absent"]
+    
+    # Biométricos clave a agregar (usamos promedios a nivel de grupo)
+    bio_cols = [
+        "hr_mean_bpm", "hrv_rmssd_ms", "stress_score", "sleep_duration_hours",
+        "sleep_efficiency_pct", "steps", "fatigue_14d", "hr_mean_bpm_7d_mean",
+        "hrv_rmssd_ms_7d_mean", "stress_score_7d_mean", "sleep_duration_hours_7d_mean",
+        "hrv_rmssd_ms_trend", "stress_score_trend", "age", "bmi", "distance_to_work_km"
+    ]
+    
+    # Asegurar que las columnas existan
+    existing_bio_cols = [c for c in bio_cols if c in scheduled_df.columns]
+    
+    # Crear diccionario de agregación
+    agg_dict = {
+        "employee_id": "count", # scheduled_headcount
+        "is_present": "sum",    # actual_headcount
+    }
+    for col in existing_bio_cols:
+        agg_dict[col] = "mean"
+        
+    # Agrupar
+    agg_df = scheduled_df.groupby(group_cols).agg(agg_dict).reset_index()
+    agg_df = agg_df.rename(columns={
+        "employee_id": "scheduled_headcount",
+        "is_present": "actual_headcount"
+    })
+    
+    # Traer dotación mínima requerida desde config.settings.REQUIRED_STAFF
+    from config.settings import REQUIRED_STAFF
+    
+    def get_required(row):
+        area = row["plant_area"]
+        shift = row["shift"]
+        return REQUIRED_STAFF.get(area, {}).get(shift, 0)
+        
+    agg_df["required_headcount"] = agg_df.apply(get_required, axis=1)
+    
+    # Calcular targets
+    agg_df["has_deficit"] = (agg_df["actual_headcount"] < agg_df["required_headcount"]).astype(int)
+    agg_df["deficit_count"] = (agg_df["required_headcount"] - agg_df["actual_headcount"]).clip(lower=0)
+    
+    # Features temporales del día
+    dt = pd.to_datetime(agg_df["date"])
+    agg_df["day_of_week"] = dt.dt.dayofweek
+    agg_df["is_monday"] = (dt.dt.dayofweek == 0).astype(int)
+    agg_df["is_friday"] = (dt.dt.dayofweek == 4).astype(int)
+    agg_df["is_weekend"] = (dt.dt.dayofweek >= 5).astype(int)
+    
+    # Features de lag del área (para capturar tendencias históricas de ausentismo en esa área)
+    agg_df = agg_df.sort_values(["plant_area", "shift", "date"]).reset_index(drop=True)
+    agg_df["absentee_rate"] = (agg_df["scheduled_headcount"] - agg_df["actual_headcount"]) / agg_df["scheduled_headcount"]
+    
+    for lag in [1, 2, 3, 7]:
+        agg_df[f"area_shift_absentee_rate_lag{lag}"] = agg_df.groupby(["plant_area", "shift"])["absentee_rate"].shift(lag).fillna(0)
+        agg_df[f"actual_headcount_lag{lag}"] = agg_df.groupby(["plant_area", "shift"])["actual_headcount"].shift(lag).fillna(agg_df["required_headcount"])
+        
+    return agg_df
+
+
 # --- Orquestador de transformaciones ---
 def run_transforms(
     emp_df: pd.DataFrame,
@@ -315,7 +397,7 @@ def run_transforms(
     work_df: pd.DataFrame,
     abs_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Ejecuta los 7 pasos de transformacion en orden."""
+    """Ejecuta los 7 pasos de transformacion en orden y luego agrega a nivel de Dotacion."""
     logger.info("Paso 1: Validacion de rangos fisiologicos")
     bio_df = validate_physiological_ranges(bio_df)
 
@@ -343,9 +425,12 @@ def run_transforms(
     logger.info("Paso 6b: Features temporales")
     merged = create_temporal_features(merged)
 
-    logger.info("Paso 7: Creacion de variable objetivo")
-    result = create_target_variable(merged)
+    logger.info("Paso 7: Creacion de variable objetivo individual")
+    merged = create_target_variable(merged)
+    
+    logger.info("Paso 8: Agregacion a nivel de Dotacion (Area-Turno-Dia)")
+    result = aggregate_to_staffing_level(merged)
 
-    logger.info("Transformacion completada: %d filas, %d columnas",
+    logger.info("Transformacion completada: %d filas agregadas, %d columnas",
                 len(result), len(result.columns))
     return result
