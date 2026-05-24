@@ -22,7 +22,7 @@ Se entrenan y evalúan tres aproximaciones para la toma de decisiones:
    - **Objetivo:** Clasificar si habrá déficit de personal (`actual_headcount < required_headcount`) y dar una probabilidad.
    - **Métricas:** AUC-ROC, PR-AUC, F1-Score, Accuracy, Precision y Recall.
 3. **Modelo 3: Ensamble Calibrado (Isotonic Calibrated XGBoost)**
-   - **Objetivo:** Calibrar las probabilidades de déficit del modelo XGBoost utilizando validación cruzada. Es vital para que un "70% de riesgo de déficit" en el dashboard corresponda exactamente a una frecuencia del 70% de casos reales.
+   - **Objetivo:** Calibrar las probabilidades de déficit del modelo XGBoost utilizando validación cruzada. Es vital para que un "70% de riesgo de déficit" en un dashboard o consumidor externo corresponda exactamente a una frecuencia del 70% de casos reales.
    - **Métricas:** Brier Score y Curva de Calibración.
 
 ---

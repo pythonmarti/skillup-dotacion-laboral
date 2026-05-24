@@ -396,8 +396,8 @@ def run_transforms(
     bio_df: pd.DataFrame,
     work_df: pd.DataFrame,
     abs_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Ejecuta los 7 pasos de transformacion en orden y luego agrega a nivel de Dotacion."""
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Ejecuta las transformaciones y retorna biometrics limpio + features agregadas."""
     logger.info("Paso 1: Validacion de rangos fisiologicos")
     bio_df = validate_physiological_ranges(bio_df)
 
@@ -406,6 +406,10 @@ def run_transforms(
 
     logger.info("Paso 3: Imputacion de valores faltantes")
     bio_df = impute_missing_values(bio_df)
+
+    # Snapshot coherente para persistencia en SQLite: biometrics ya limpio,
+    # pero aun sin features derivadas para modelado.
+    bio_clean = bio_df.copy()
 
     logger.info("Paso 4: Normalizacion por individuo (Z-score)")
     bio_df = normalize_by_individual(bio_df)
@@ -433,4 +437,4 @@ def run_transforms(
 
     logger.info("Transformacion completada: %d filas agregadas, %d columnas",
                 len(result), len(result.columns))
-    return result
+    return bio_clean, result

@@ -40,7 +40,7 @@ def run_pipeline() -> None:
     # --- Transform ---
     logger.info("=== TRANSFORM ===")
     bio_raw = bio_df.copy()
-    ml_features = run_transforms(emp_df, bio_df, work_df, abs_df)
+    bio_clean, ml_features = run_transforms(emp_df, bio_df, work_df, abs_df)
 
     # --- Load ---
     logger.info("=== LOAD ===")
@@ -48,7 +48,7 @@ def run_pipeline() -> None:
         create_schema(conn)
         load_dataframe(emp_df, "employees", conn)
         load_dataframe(bio_raw, "biometrics_raw", conn)
-        load_dataframe(bio_df, "biometrics_clean", conn)
+        load_dataframe(bio_clean, "biometrics_clean", conn)
         load_dataframe(work_df, "work_records", conn)
         load_dataframe(ml_features, "ml_features", conn)
 
