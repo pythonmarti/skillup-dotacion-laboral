@@ -1,9 +1,9 @@
 # Data
-data/raw/
-data/*.db
-data/*.db-shm
-data/*.db-wal
-data/processed/
+#data/raw/
+#data/*.db
+#data/*.db-shm
+#data/*.db-wal
+#data/processed/
 
 # Python
 __pycache__/
