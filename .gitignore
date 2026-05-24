@@ -29,3 +29,7 @@ Thumbs.db
 
 
 .env
+
+docs/arquitectura_validada.md
+
+__PRIVATE__/
