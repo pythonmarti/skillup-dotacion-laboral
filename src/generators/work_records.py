@@ -1,9 +1,12 @@
 """Generador de registros de trabajo diarios."""
 
+import logging
 import numpy as np
 import pandas as pd
 
 from config.settings import PLANT_AREAS, SHIFTS
+
+logger = logging.getLogger(__name__)
 
 # Días festivos oficiales mexicanos (mes, día)
 _MEXICAN_HOLIDAYS = [
@@ -35,13 +38,17 @@ def generate_work_records(
     -------
     pd.DataFrame
     """
+    n_emp = len(employees_df)
+    logger.info("Generando registros de trabajo: %d empleados x %d dias (seed=%d)...", n_emp, days, seed)
     rng = np.random.default_rng(seed)
     shift_names = list(SHIFTS.keys())
     start_date = pd.Timestamp("2025-09-08")  # Lunes de inicio
     dates = pd.date_range(start_date, periods=days, freq="D")
 
     records = []
-    for _, emp in employees_df.iterrows():
+    for i, (_, emp) in enumerate(employees_df.iterrows()):
+        if (i + 1) % 50 == 0 or (i + 1) == n_emp:
+            logger.debug("  Empleado %d/%d procesado", i + 1, n_emp)
         emp_id = emp["employee_id"]
         area = emp["plant_area"]
         shift_pattern = emp["shift_pattern"]
@@ -105,4 +112,9 @@ def generate_work_records(
                 "is_rest_day": is_rest_day,
             })
 
-    return pd.DataFrame(records)
+    df = pd.DataFrame(records)
+    logger.info(
+        "Registros de trabajo generados: %d filas (%.0f dias/empleado promedio)",
+        len(df), len(df) / max(n_emp, 1),
+    )
+    return df

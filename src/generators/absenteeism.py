@@ -1,9 +1,12 @@
 """Generador de eventos de ausentismo causalmente ligados a biometrics y work_records."""
 
+import logging
 import numpy as np
 import pandas as pd
 
 from config.settings import ABSENCE_REASONS, PLANT_AREAS
+
+logger = logging.getLogger(__name__)
 
 
 def generate_absenteeism(
@@ -55,7 +58,19 @@ def generate_absenteeism(
 
     all_dates = sorted(work_records_df["date"].unique())
 
-    for date in all_dates:
+    n_emp = len(emp_lookup)
+    n_dates = len(all_dates)
+    logger.info(
+        "Generando ausentismo: %d empleados x %d fechas (seed=%d)...",
+        n_emp, n_dates, seed,
+    )
+
+    for date_num, date in enumerate(all_dates):
+        if (date_num + 1) % 30 == 0 or (date_num + 1) == n_dates:
+            logger.debug(
+                "  Ausentismo: fecha %d/%d (%s) | ausencias acumuladas: %d",
+                date_num + 1, n_dates, date, len(records),
+            )
         date_ts = pd.Timestamp(date)
         is_monday_or_friday = date_ts.dayofweek in (0, 4)
 
@@ -131,4 +146,10 @@ def generate_absenteeism(
                     "is_absent": 1,
                 })
 
-    return pd.DataFrame(records)
+    df = pd.DataFrame(records)
+    total_scheduled = n_emp * n_dates
+    logger.info(
+        "Ausentismo generado: %d eventos de ausencia | tasa: %.1f%% de turnos programados",
+        len(df), 100 * len(df) / max(total_scheduled, 1),
+    )
+    return df

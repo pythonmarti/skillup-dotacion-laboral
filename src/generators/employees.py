@@ -1,10 +1,13 @@
 """Generador de perfiles demográficos de empleados."""
 
+import logging
 import numpy as np
 import pandas as pd
 from faker import Faker
 
 from config.settings import PLANT_AREAS, POSITIONS
+
+logger = logging.getLogger(__name__)
 
 
 def generate_employees(n: int = 200, seed: int = 42) -> pd.DataFrame:
@@ -21,6 +24,7 @@ def generate_employees(n: int = 200, seed: int = 42) -> pd.DataFrame:
     -------
     pd.DataFrame
     """
+    logger.info("Generando perfiles de %d empleados (seed=%d)...", n, seed)
     rng = np.random.default_rng(seed)
     fake = Faker("es_MX")
     Faker.seed(seed)
@@ -92,4 +96,6 @@ def generate_employees(n: int = 200, seed: int = 42) -> pd.DataFrame:
             "hire_date": hire_date,
         })
 
-    return pd.DataFrame(records)
+    df = pd.DataFrame(records)
+    logger.info("Empleados generados: %d filas", len(df))
+    return df

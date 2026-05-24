@@ -1,9 +1,12 @@
 """Generador de series temporales de datos biométricos diarios."""
 
+import logging
 import numpy as np
 import pandas as pd
 
 from config.settings import PHYSIO_RANGES, PLANT_AREAS, ABSENCE_REASONS
+
+logger = logging.getLogger(__name__)
 
 
 def _generate_health_events(employees_df: pd.DataFrame, days: int, seed: int = 42) -> dict:
@@ -12,10 +15,11 @@ def _generate_health_events(employees_df: pd.DataFrame, days: int, seed: int = 4
     Retorna un diccionario emp_id -> (states, reason_arr)
     Donde states es un array de tamaño 'days' con valores:
       - 0: normal
-      - 1: incubación (2 días antes)
-      - 2: incubación (1 día antes)
+      - 1: incubacion (2 dias antes)
+      - 2: incubacion (1 dia antes)
       - 3: enfermo/ausente
     """
+    logger.info("Pre-generando eventos de salud para %d empleados (%d dias)...", len(employees_df), days)
     rng = np.random.default_rng(seed)
     reasons = list(ABSENCE_REASONS.keys())
     reason_weights = np.array([ABSENCE_REASONS[r]["weight"] for r in reasons])
@@ -134,6 +138,12 @@ def generate_biometrics(
     -------
     pd.DataFrame
     """
+    n_emp = len(employees_df)
+    n_dates = len(sorted(work_records_df["date"].unique())[:days])
+    logger.info(
+        "Generando biometricos: %d empleados x %d dias = %d registros (seed=%d)...",
+        n_emp, n_dates, n_emp * n_dates, seed,
+    )
     rng = np.random.default_rng(seed)
     baselines = _build_baselines(employees_df, rng)
 
@@ -155,7 +165,10 @@ def generate_biometrics(
     all_dates = sorted(work_records_df["date"].unique())[:days]
     date_to_idx = {d: i for i, d in enumerate(all_dates)}
 
-    for date in all_dates:
+    n_dates = len(all_dates)
+    for date_num, date in enumerate(all_dates):
+        if (date_num + 1) % 30 == 0 or (date_num + 1) == n_dates:
+            logger.debug("  Procesando dia %d/%d (%s)...", date_num + 1, n_dates, date)
         day_idx = date_to_idx[date]
         for emp_id, bl in baselines.items():
             area = emp_area[emp_id]
@@ -335,4 +348,10 @@ def generate_biometrics(
                 "_absence_reason": reason,
             })
 
-    return pd.DataFrame(records)
+    df = pd.DataFrame(records)
+    sick_days = int(df["_is_sick"].sum())
+    logger.info(
+        "Biometricos generados: %d filas | dias de enfermedad simulados: %d (%.1f%%)",
+        len(df), sick_days, 100 * sick_days / max(len(df), 1),
+    )
+    return df

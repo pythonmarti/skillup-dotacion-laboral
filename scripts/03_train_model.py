@@ -1,5 +1,6 @@
 """Script de entrenamiento y evaluación de modelos predictivos de dotación laboral."""
 
+import logging
 import sys
 import warnings
 from pathlib import Path
@@ -19,7 +20,7 @@ from src.models.staffing_models import (
     train_deficit_classifier,
     train_calibrated_ensemble,
     evaluate_regression,
-    evaluate_classification
+    evaluate_classification,
 )
 from src.models.evaluate import (
     find_optimal_threshold,
@@ -30,58 +31,58 @@ from src.models.evaluate import (
     plot_threshold_analysis,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def plot_regression_actual_vs_predicted(y_true, y_pred, save_path):
     """Grafica dotación real vs predicha."""
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.scatter(y_true, y_pred, alpha=0.5, color="teal", edgecolors="black", linewidths=0.5)
-    
-    # Línea de identidad
+
     min_val = min(y_true.min(), y_pred.min())
     max_val = max(y_true.max(), y_pred.max())
     ax.plot([min_val, max_val], [min_val, max_val], "r--", lw=2, label="Perfecto")
-    
-    ax.set_xlabel("Dotación Disponible Real")
-    ax.set_ylabel("Dotación Disponible Predicha")
-    ax.set_title("Modelo 1: Regresión de Dotación Real vs Predicha")
+
+    ax.set_xlabel("Dotacion Disponible Real")
+    ax.set_ylabel("Dotacion Disponible Predicha")
+    ax.set_title("Modelo 1: Regresion de Dotacion Real vs Predicha")
     ax.legend()
     ax.grid(True, alpha=0.3)
-    
+
     fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"Gráfico de regresión guardado en {save_path}")
+    logger.info("Grafico guardado: %s", save_path.name)
 
 
 def plot_calibration_curve_custom(y_true, prob_dict, save_path):
     """Grafica la curva de calibración de probabilidades."""
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.plot([0, 1], [0, 1], "k:", label="Perfectamente calibrado")
-    
+
     for name, probs in prob_dict.items():
         fraction_of_positives, mean_predicted_value = calibration_curve(y_true, probs, n_bins=8)
         ax.plot(mean_predicted_value, fraction_of_positives, "s-", label=name)
-        
-    ax.set_ylabel("Fracción de positivos reales (Frecuencia)")
+
+    ax.set_ylabel("Fraccion de positivos reales")
     ax.set_xlabel("Probabilidad predicha media")
-    ax.set_title("Curvas de Calibración de Riesgo de Déficit")
+    ax.set_title("Curvas de Calibracion de Riesgo de Deficit")
     ax.legend(loc="lower right")
     ax.grid(True, alpha=0.3)
-    
+
     fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"Gráfico de calibración guardado en {save_path}")
+    logger.info("Grafico guardado: %s", save_path.name)
 
 
 def main():
-    print("=" * 60)
-    print("  PASO 3: Entrenamiento de Modelos de Dotación Laboral")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("PASO 3: Entrenamiento de Modelos de Dotacion Laboral")
+    logger.info("=" * 60)
 
-    # Asegurar que el directorio de salida existe
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 1. Cargar features con fechas
-    print("\nCargando features desde SQLite...")
+    # 1. Cargar features
+    logger.info("[1/6] Cargando features desde SQLite...")
     data = prepare_feature_matrix()
     X_full = data["X"]
     y_full_class = data["y_class"]
@@ -89,12 +90,13 @@ def main():
     feature_names = data["feature_names"]
     dates = data.get("date")
 
-    print(f"  Samples totales: {X_full.shape[0]}")
-    print(f"  Features: {X_full.shape[1]}")
-    print(f"  Casos de Déficit en total: {y_full_class.sum()} ({y_full_class.mean() * 100:.1f}%)")
+    logger.info(
+        "  Dataset: %d registros | %d features | deficit rate: %.1f%%",
+        X_full.shape[0], X_full.shape[1], y_full_class.mean() * 100,
+    )
 
     # 2. Split temporal
-    print("\nAplicando split temporal...")
+    logger.info("[2/6] Aplicando split temporal (test_ratio=%.0f%%)...", MODEL_CONFIG["test_ratio"] * 100)
     if dates is not None:
         temp_df = X_full.copy()
         temp_df["date"] = dates
@@ -108,118 +110,131 @@ def main():
         X_train = train_df.drop(columns=["date", "_target_class", "_target_reg"])
         y_train_class = train_df["_target_class"].astype(int)
         y_train_reg = train_df["_target_reg"]
-        
+
         X_test = test_df.drop(columns=["date", "_target_class", "_target_reg"])
         y_test_class = test_df["_target_class"].astype(int)
         y_test_reg = test_df["_target_reg"]
     else:
-        raise ValueError("Se requieren fechas para realizar la validación temporal.")
+        raise ValueError("Se requieren fechas para realizar la validacion temporal.")
 
-    print(f"  Train: {X_train.shape[0]} registros, Deficit: {y_train_class.sum()} ({y_train_class.mean()*100:.1f}%)")
-    print(f"  Test:  {X_test.shape[0]} registros, Deficit: {y_test_class.sum()} ({y_test_class.mean()*100:.1f}%)")
+    logger.info(
+        "  Train: %d registros | deficit: %d (%.1f%%)",
+        X_train.shape[0], y_train_class.sum(), y_train_class.mean() * 100,
+    )
+    logger.info(
+        "  Test:  %d registros | deficit: %d (%.1f%%)",
+        X_test.shape[0], y_test_class.sum(), y_test_class.mean() * 100,
+    )
 
     # ==========================================
     # Modelo 1: Regresor de Headcount
     # ==========================================
-    print("\n--- MODELO 1: Regresor de Headcount ---")
+    logger.info("[3/6] Entrenando Modelo 1: Regresor de Headcount (RandomForest)...")
     regressor = train_headcount_regressor(X_train, y_train_reg)
     test_pred_reg = regressor.predict(X_test)
     reg_metrics = evaluate_regression(y_test_reg, test_pred_reg)
-    
-    print(f"  MAE (Error absoluto medio): {reg_metrics['MAE']:.2f} operadores")
-    print(f"  RMSE (Error cuadrático medio): {reg_metrics['RMSE']:.2f} operadores")
-    print(f"  R2 Score: {reg_metrics['R2']:.4f}")
-    
+
+    logger.info(
+        "  Modelo 1 - MAE: %.2f operadores | RMSE: %.2f | R2: %.4f",
+        reg_metrics["MAE"], reg_metrics["RMSE"], reg_metrics["R2"],
+    )
     plot_regression_actual_vs_predicted(
-        y_test_reg, 
-        test_pred_reg, 
-        PROCESSED_DIR / "headcount_actual_vs_predicted.png"
+        y_test_reg, test_pred_reg,
+        PROCESSED_DIR / "headcount_actual_vs_predicted.png",
     )
 
     # ==========================================
     # Modelo 2: Clasificador de Riesgo de Déficit
     # ==========================================
-    print("\n--- MODELO 2: Clasificador de Déficit (XGBoost) ---")
+    logger.info("[4/6] Entrenando Modelo 2: Clasificador de Deficit (XGBoost)...")
     classifier_df = train_deficit_classifier(X_train, y_train_class)
-    
-    # Probabilidades en entrenamiento para optimizar threshold
-    train_prob_class = classifier_df.predict_proba(X_train)[:, 1]
-    optimal_th_c2 = find_optimal_threshold(y_train_class, train_prob_class)
-    
-    # Evaluación en test
+
+    train_prob_c2 = classifier_df.predict_proba(X_train)[:, 1]
+    optimal_th_c2 = find_optimal_threshold(y_train_class, train_prob_c2)
+
     test_prob_c2 = classifier_df.predict_proba(X_test)[:, 1]
     class2_metrics = evaluate_classification(y_test_class, test_prob_c2, threshold=optimal_th_c2)
-    
-    print("\nMétricas Modelo 2 (XGBoost) en Test:")
-    for k, v in class2_metrics.items():
-        print(f"  {k}: {v:.4f}")
-        
     test_pred_c2 = (test_prob_c2 >= optimal_th_c2).astype(int)
+
+    logger.info(
+        "  Modelo 2 - AUC: %.4f | F1: %.4f | Precision: %.4f | Recall: %.4f | Brier: %.4f",
+        class2_metrics["AUC-ROC"], class2_metrics["F1-Score"],
+        class2_metrics["Precision"], class2_metrics["Recall"],
+        class2_metrics["Brier Score"],
+    )
     plot_confusion_matrix(y_test_class, test_pred_c2, "Modelo 2 (XGBoost)")
 
     # ==========================================
     # Modelo 3: Ensamble Calibrado
     # ==========================================
-    print("\n--- MODELO 3: Ensamble Calibrado (XGBoost Calibrado) ---")
+    logger.info("[5/6] Entrenando Modelo 3: Ensamble Calibrado (Isotonic XGBoost)...")
     calibrated_model = train_calibrated_ensemble(X_train, y_train_class)
-    
-    # Probabilidades en entrenamiento para optimizar threshold
+
     train_prob_c3 = calibrated_model.predict_proba(X_train)[:, 1]
     optimal_th_c3 = find_optimal_threshold(y_train_class, train_prob_c3)
-    
-    # Evaluación en test
+
     test_prob_c3 = calibrated_model.predict_proba(X_test)[:, 1]
     class3_metrics = evaluate_classification(y_test_class, test_prob_c3, threshold=optimal_th_c3)
-    
-    print("\nMétricas Modelo 3 (Calibrado) en Test:")
-    for k, v in class3_metrics.items():
-        print(f"  {k}: {v:.4f}")
-        
     test_pred_c3 = (test_prob_c3 >= optimal_th_c3).astype(int)
+
+    logger.info(
+        "  Modelo 3 - AUC: %.4f | F1: %.4f | Precision: %.4f | Recall: %.4f | Brier: %.4f",
+        class3_metrics["AUC-ROC"], class3_metrics["F1-Score"],
+        class3_metrics["Precision"], class3_metrics["Recall"],
+        class3_metrics["Brier Score"],
+    )
     plot_confusion_matrix(y_test_class, test_pred_c3, "Modelo 3 (Calibrado)")
 
     # ==========================================
-    # Comparaciones y Gráficos Finales
+    # Graficos y reporte final
     # ==========================================
-    print("\nGenerando gráficos comparativos de clasificación...")
+    logger.info("[6/6] Generando graficos y reporte comparativo...")
+
     prob_dict = {
         "Modelo 2 (XGBoost)": test_prob_c2,
-        "Modelo 3 (Calibrado)": test_prob_c3
+        "Modelo 3 (Calibrado)": test_prob_c3,
     }
     plot_roc_curve(y_test_class, prob_dict, save_path=PROCESSED_DIR / "roc_curve_staffing.png")
     plot_precision_recall_curve(y_test_class, prob_dict, save_path=PROCESSED_DIR / "pr_curve_staffing.png")
-    
-    # Curva de Calibración
     plot_calibration_curve_custom(y_test_class, prob_dict, save_path=PROCESSED_DIR / "calibration_curve_staffing.png")
-    
-    for name, probs in prob_dict.items():
-        plot_threshold_analysis(y_test_class, probs, name, save_path=PROCESSED_DIR / f"threshold_analysis_{name.lower().replace(' ', '_').replace('(', '').replace(')', '')}.png")
 
-    # Importancia de variables del clasificador base
-    if hasattr(classifier_df, "feature_importances_"):
-        plot_feature_importance(
-            classifier_df, 
-            feature_names, 
-            top_n=20, 
-            save_path=PROCESSED_DIR / "feature_importance_staffing.png"
+    for name, probs in prob_dict.items():
+        slug = name.lower().replace(" ", "_").replace("(", "").replace(")", "")
+        plot_threshold_analysis(
+            y_test_class, probs, name,
+            save_path=PROCESSED_DIR / f"threshold_analysis_{slug}.png",
         )
 
-    # Imprimir resumen de comparación de clasificación
-    print("\n" + "=" * 60)
-    print("  Tabla Comparativa de Modelos de Déficit")
-    print("=" * 60)
+    if hasattr(classifier_df, "feature_importances_"):
+        plot_feature_importance(
+            classifier_df, feature_names, top_n=20,
+            save_path=PROCESSED_DIR / "feature_importance_staffing.png",
+        )
+
     comp_df = pd.DataFrame({
         "Modelo 2 (XGBoost)": class2_metrics,
-        "Modelo 3 (Calibrado)": class3_metrics
+        "Modelo 3 (Calibrado)": class3_metrics,
     }).T
-    print(comp_df.round(4).to_string())
-    print("=" * 60 + "\n")
-    
-    # Guardar métricas en CSV para referencia
     comp_df.to_csv(PROCESSED_DIR / "model_comparison_metrics.csv")
-    
-    print("¡Entrenamiento y evaluación de los 3 modelos completados con éxito!")
+
+    logger.info("=" * 60)
+    logger.info("TABLA COMPARATIVA DE MODELOS DE DEFICIT")
+    logger.info("=" * 60)
+    for idx, row in comp_df.round(4).iterrows():
+        logger.info(
+            "  %-25s | AUC: %.4f | F1: %.4f | Brier: %.4f",
+            idx, row["AUC-ROC"], row["F1-Score"], row["Brier Score"],
+        )
+    logger.info("=" * 60)
+    logger.info(
+        "Modelos 1, 2 y 3 completados. Resultados guardados en: %s", PROCESSED_DIR,
+    )
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
     main()

@@ -1,5 +1,7 @@
 """Funciones de evaluacion de modelos predictivos."""
 
+import logging
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -21,6 +23,8 @@ from sklearn.metrics import (
 )
 
 from config.settings import PROCESSED_DIR
+
+logger = logging.getLogger(__name__)
 
 
 def find_optimal_threshold(y_true, y_prob):
@@ -44,7 +48,7 @@ def find_optimal_threshold(y_true, y_prob):
     best_idx = np.argmax(f1_scores)
     best_threshold = thresholds[best_idx]
     best_f1 = f1_scores[best_idx]
-    print(f"  Threshold optimo: {best_threshold:.4f} (F1={best_f1:.4f})")
+    logger.info("  Threshold optimo: %.4f (F1=%.4f)", best_threshold, best_f1)
     return best_threshold
 
 
@@ -78,7 +82,7 @@ def plot_threshold_analysis(y_true, y_prob, model_name, save_path=None):
     save_path = save_path or PROCESSED_DIR / f"threshold_analysis_{model_name.lower().replace(' ', '_')}.png"
     fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"Threshold analysis guardado en {save_path}")
+    logger.info("Threshold analysis guardado en %s", save_path)
 
 
 def plot_precision_recall_curve(y_true, y_prob_dict, save_path=None):
@@ -110,7 +114,7 @@ def plot_precision_recall_curve(y_true, y_prob_dict, save_path=None):
     save_path = save_path or PROCESSED_DIR / "pr_curve.png"
     fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"PR curve guardada en {save_path}")
+    logger.info("PR curve guardada en %s", save_path)
 
 
 def print_classification_report(y_true, y_pred, y_prob, model_name):
@@ -126,12 +130,10 @@ def print_classification_report(y_true, y_pred, y_prob, model_name):
     rec = recall_score(y_true, y_pred, zero_division=0)
     f1 = f1_score(y_true, y_pred, zero_division=0)
 
-    print(f"  AUC-ROC:   {auc:.4f}")
-    print(f"  Accuracy:  {acc:.4f}")
-    print(f"  Precision: {prec:.4f}")
-    print(f"  Recall:    {rec:.4f}")
-    print(f"  F1-Score:  {f1:.4f}")
-    print(f"{'=' * 60}\n")
+    logger.info(
+        "  %s | AUC: %.4f | Acc: %.4f | Prec: %.4f | Recall: %.4f | F1: %.4f",
+        model_name, auc, acc, prec, rec, f1,
+    )
 
     return {"auc": auc, "accuracy": acc, "precision": prec, "recall": rec, "f1": f1}
 
@@ -163,7 +165,7 @@ def plot_roc_curve(y_true, y_prob_dict, save_path=None):
     save_path = save_path or PROCESSED_DIR / "roc_curve.png"
     fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"ROC curve guardada en {save_path}")
+    logger.info("ROC curve guardada en %s", save_path)
 
 
 def plot_feature_importance(model, feature_names, top_n=20, save_path=None):
@@ -188,7 +190,7 @@ def plot_feature_importance(model, feature_names, top_n=20, save_path=None):
     save_path = save_path or PROCESSED_DIR / "feature_importance.png"
     fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"Feature importance guardada en {save_path}")
+    logger.info("Feature importance guardada en %s", save_path)
 
 
 def plot_confusion_matrix(y_true, y_pred, model_name, save_path=None):
@@ -212,7 +214,7 @@ def plot_confusion_matrix(y_true, y_pred, model_name, save_path=None):
     save_path = save_path or PROCESSED_DIR / f"confusion_matrix_{model_name.lower().replace(' ', '_')}.png"
     fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"Confusion matrix guardada en {save_path}")
+    logger.info("Confusion matrix guardada en %s", save_path)
 
 
 def compare_models(results_dict):
@@ -230,9 +232,5 @@ def compare_models(results_dict):
     df = pd.DataFrame(results_dict).T
     df.index.name = "Modelo"
     df = df.round(4)
-    print("\n" + "=" * 60)
-    print("  Comparacion de Modelos")
-    print("=" * 60)
-    print(df.to_string())
-    print("=" * 60 + "\n")
+    logger.info("Comparacion de modelos:\n%s", df.to_string())
     return df
