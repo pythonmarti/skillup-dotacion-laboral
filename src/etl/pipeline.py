@@ -1,6 +1,7 @@
 """Orquestador del pipeline ETL."""
 
 import logging
+from pathlib import Path
 
 from config.settings import DB_PATH
 from src.utils.database import get_connection
@@ -16,7 +17,7 @@ from src.etl.load import create_schema, load_dataframe
 logger = logging.getLogger(__name__)
 
 
-def run_pipeline() -> None:
+def run_pipeline(employees_path: Path | None = None) -> None:
     """Ejecuta el pipeline ETL completo: Extract -> Transform -> Load."""
     logging.basicConfig(
         level=logging.INFO,
@@ -25,7 +26,7 @@ def run_pipeline() -> None:
 
     # --- Extract ---
     logger.info("=== EXTRACT ===")
-    emp_df = extract_employees()
+    emp_df = extract_employees(path=employees_path)
     logger.info("Empleados: %d filas", len(emp_df))
 
     bio_df = extract_biometrics()

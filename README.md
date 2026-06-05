@@ -52,6 +52,105 @@ Este script orquesta los siguientes pasos de forma secuencial:
 2. **ETL y Feature Engineering (`02_run_etl.py`):** Limpia biometría, imputa datos vacíos con KNN, normaliza (Z-Scores individuales), crea ventanas móviles (fatiga de 14 días), agrega todo a nivel de Área-Turno-Día y guarda la matriz resultante en `ml_features` dentro de la base de datos SQLite `data/skillup.db`.
 3. **Entrenamiento y Evaluación (`03_train_model.py`):** Aplica validación temporal (split ordenado por fecha), entrena los 3 modelos descritos, optimiza los umbrales de decisión basados en el conjunto de entrenamiento, evalúa en test y genera gráficos de reporte en `data/processed/`.
 
+### Generacion de fichas medicas PDF
+
+Para generar una ficha medica en PDF por empleado:
+
+```bash
+uv run python scripts/05_generate_medical_forms.py
+```
+
+Salida por defecto:
+
+- PDFs individuales en `data/raw/medical_forms/`
+- por defecto se genera solo la ficha visual
+- opcionalmente puedes agregar una segunda pagina estructurada para digitalizacion
+
+Tambien puedes indicar rutas personalizadas:
+
+```bash
+uv run python scripts/05_generate_medical_forms.py --input data/raw/employees.csv --output-dir data/raw/medical_forms
+```
+
+Para incluir la segunda pagina estructurada:
+
+```bash
+uv run python scripts/05_generate_medical_forms.py --include-structured-page
+```
+
+### Extraccion de fichas medicas a CSV
+
+Para convertir un lote de fichas medicas PDF en un CSV compatible con `employees.csv`:
+
+```bash
+uv run python scripts/06_extract_medical_forms.py
+```
+
+Salida por defecto:
+
+- entrada: `data/raw/medical_forms/`
+- salida: `data/raw/employees_from_forms.csv`
+
+Opciones utiles:
+
+```bash
+uv run python scripts/06_extract_medical_forms.py --input-dir data/raw/medical_forms --output-csv data/raw/employees_from_forms.csv
+```
+
+Para validar que el CSV extraido sea exactamente igual a `employees.csv`:
+
+```bash
+uv run python scripts/06_extract_medical_forms.py --validate-against data/raw/employees.csv
+```
+
+### Usar el CSV extraido en el ETL
+
+El ETL acepta una fuente alternativa de empleados. Para correrlo usando `employees_from_forms.csv`:
+
+```bash
+uv run python scripts/02_run_etl.py --employees-path data/raw/employees_from_forms.csv
+```
+
+### Flujo unificado PDF -> CSV -> ETL
+
+Para ejecutar todo en un solo paso:
+
+```bash
+uv run python scripts/07_forms_to_etl.py
+```
+
+Por defecto este flujo:
+
+- extrae PDFs desde `data/raw/medical_forms/`
+- genera `data/raw/employees_from_forms.csv`
+- valida contra `data/raw/employees.csv`
+- ejecuta el ETL usando el CSV extraido
+
+Si quieres omitir la validacion exacta:
+
+```bash
+uv run python scripts/07_forms_to_etl.py --skip-validation
+```
+
+### Flujo completo PDF -> CSV -> ETL -> metricas del modelo
+
+Para ejecutar todo hasta entrenamiento, evaluacion y generacion de metricas:
+
+```bash
+uv run python scripts/08_forms_to_model_metrics.py
+```
+
+Este flujo:
+
+- extrae fichas PDF
+- genera `employees_from_forms.csv`
+- valida contra `employees.csv`
+- ejecuta ETL y genera `ml_features`
+- entrena los modelos
+- guarda metricas y graficos en `data/processed/`
+
+Nota: el flujo usa `pdftotext` para PDFs nativos. Si el PDF viene escaneado y no contiene texto util, el script intenta usar OCR solo si `tesseract` esta instalado.
+
 ---
 
 ## Visualización de Resultados y Métricas

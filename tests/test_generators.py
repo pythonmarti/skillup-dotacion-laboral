@@ -1,6 +1,7 @@
 """Tests para los generadores de datos sinteticos."""
 
 import sys
+import shutil
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -157,3 +158,147 @@ class TestCausalRelationship:
         assert high_bmi > low_bmi, (
             f"Esperado: BMI>30 ({high_bmi:.2f}) > BMI<=30 ({low_bmi:.2f})"
         )
+
+
+class TestGenerateMedicalForms:
+    def test_generates_one_pdf_per_employee(self, tmp_path):
+        from src.generators.employees import generate_employees
+        from src.generators.medical_forms import generate_medical_forms
+
+        employees_df = generate_employees(n=2, seed=42)
+        generated_files = generate_medical_forms(employees_df, tmp_path)
+
+        assert len(generated_files) == 2
+        assert all(path.exists() for path in generated_files)
+        assert all(path.suffix == ".pdf" for path in generated_files)
+
+    def test_pdf_has_expected_name_and_content(self, tmp_path):
+        from src.generators.employees import generate_employees
+        from src.generators.medical_forms import generate_medical_forms
+
+        employees_df = generate_employees(n=1, seed=42)
+        generated_files = generate_medical_forms(employees_df, tmp_path)
+
+        expected_name = f"{employees_df.iloc[0]['employee_id']}_medical_form.pdf"
+        assert generated_files[0].name == expected_name
+        assert generated_files[0].stat().st_size > 1_000
+
+    def test_structured_page_is_optional(self, tmp_path):
+        from src.generators.employees import generate_employees
+        from src.generators.medical_forms import generate_medical_forms
+
+        employees_df = generate_employees(n=1, seed=42)
+        plain_file = generate_medical_forms(employees_df, tmp_path / "plain", include_structured_page=False)[0]
+        structured_file = generate_medical_forms(employees_df, tmp_path / "structured", include_structured_page=True)[0]
+
+        assert structured_file.stat().st_size > plain_file.stat().st_size
+
+    def test_raises_when_required_columns_are_missing(self, tmp_path):
+        from src.generators.medical_forms import generate_medical_forms
+
+        incomplete_df = pd.DataFrame([{"employee_id": "EMP_001", "name": "Persona"}])
+
+        with pytest.raises(ValueError, match="Faltan columnas requeridas"):
+            generate_medical_forms(incomplete_df, tmp_path)
+
+
+class TestExtractMedicalForms:
+    def test_extract_generated_pdfs_to_dataframe(self, tmp_path):
+        if shutil.which("pdftotext") is None:
+            pytest.skip("pdftotext no esta disponible")
+
+        from src.generators.employees import generate_employees
+        from src.generators.medical_forms import generate_medical_forms
+        from src.extraction.medical_forms import extract_medical_forms_to_dataframe
+
+        employees_df = generate_employees(n=3, seed=42)
+        pdf_paths = generate_medical_forms(employees_df, tmp_path, include_structured_page=False)
+        extracted_df = extract_medical_forms_to_dataframe(pdf_paths)
+
+        pd.testing.assert_frame_equal(
+            extracted_df.reset_index(drop=True),
+            employees_df[[
+                "employee_id", "name", "age", "gender", "bmi", "education_level",
+                "plant_area", "position", "seniority_years", "shift_pattern",
+                "distance_to_work_km", "children", "social_drinker", "smoker", "hire_date",
+            ]].reset_index(drop=True),
+        )
+
+    def test_extract_generated_pdfs_to_csv(self, tmp_path):
+        if shutil.which("pdftotext") is None:
+            pytest.skip("pdftotext no esta disponible")
+
+        from src.generators.employees import generate_employees
+        from src.generators.medical_forms import generate_medical_forms
+        from src.extraction.medical_forms import extract_medical_forms_dir_to_csv
+
+        forms_dir = tmp_path / "forms"
+        output_csv = tmp_path / "employees_from_forms.csv"
+        employees_df = generate_employees(n=2, seed=123)
+        generate_medical_forms(employees_df, forms_dir, include_structured_page=False)
+
+        extracted_df = extract_medical_forms_dir_to_csv(forms_dir, output_csv)
+
+        assert output_csv.exists()
+        assert len(extracted_df) == 2
+
+    def test_validate_employees_csv_match(self, tmp_path):
+        from src.extraction.medical_forms import validate_employees_csv_match
+
+        reference = tmp_path / "reference.csv"
+        candidate = tmp_path / "candidate.csv"
+        df = pd.DataFrame([
+            {
+                "employee_id": "EMP_001",
+                "name": "Persona Uno",
+                "age": 30,
+                "gender": "F",
+                "bmi": 25.1,
+                "education_level": 3,
+                "plant_area": "oficinas",
+                "position": "analista",
+                "seniority_years": 2,
+                "shift_pattern": "fijo",
+                "distance_to_work_km": 10.0,
+                "children": 1,
+                "social_drinker": False,
+                "smoker": False,
+                "hire_date": "2024-01-01",
+            }
+        ])
+        df.to_csv(reference, index=False)
+        df.to_csv(candidate, index=False)
+
+        validate_employees_csv_match(reference, candidate)
+
+    def test_validate_employees_csv_match_detects_difference(self, tmp_path):
+        from src.extraction.medical_forms import validate_employees_csv_match
+
+        reference = tmp_path / "reference.csv"
+        candidate = tmp_path / "candidate.csv"
+        reference_df = pd.DataFrame([
+            {
+                "employee_id": "EMP_001",
+                "name": "Persona Uno",
+                "age": 30,
+                "gender": "F",
+                "bmi": 25.1,
+                "education_level": 3,
+                "plant_area": "oficinas",
+                "position": "analista",
+                "seniority_years": 2,
+                "shift_pattern": "fijo",
+                "distance_to_work_km": 10.0,
+                "children": 1,
+                "social_drinker": False,
+                "smoker": False,
+                "hire_date": "2024-01-01",
+            }
+        ])
+        candidate_df = reference_df.copy()
+        candidate_df.loc[0, "age"] = 31
+        reference_df.to_csv(reference, index=False)
+        candidate_df.to_csv(candidate, index=False)
+
+        with pytest.raises(ValueError, match="no coincide exactamente"):
+            validate_employees_csv_match(reference, candidate)
