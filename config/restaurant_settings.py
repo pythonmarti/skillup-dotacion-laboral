@@ -16,10 +16,10 @@ RESTAURANT_RANDOM_SEED = 42
 RESTAURANT_START_DATE = "2025-07-01"
 
 SERVICE_PERIODS = {
-    "11_13": {"label": "11:00-13:00", "demand_factor": 0.8, "fatigue_factor": 0.9},
-    "13_15": {"label": "13:00-15:00", "demand_factor": 1.2, "fatigue_factor": 1.0},
+    "11_13": {"label": "11:00-13:00", "demand_factor": 0.72, "fatigue_factor": 0.9},
+    "13_15": {"label": "13:00-15:00", "demand_factor": 1.45, "fatigue_factor": 1.08},
     "19_21": {"label": "19:00-21:00", "demand_factor": 1.35, "fatigue_factor": 1.2},
-    "21_23": {"label": "21:00-23:00", "demand_factor": 0.95, "fatigue_factor": 1.25},
+    "21_23": {"label": "21:00-23:00", "demand_factor": 0.88, "fatigue_factor": 1.25},
 }
 
 RESTAURANT_ROLES = {

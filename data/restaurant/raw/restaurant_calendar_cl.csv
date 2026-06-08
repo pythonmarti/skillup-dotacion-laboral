@@ -179,3 +179,5 @@ date,is_holiday,holiday_name,is_holiday_eve,is_long_weekend,is_school_break,is_p
 2025-12-25,True,Navidad,False,False,True,False,summer,0.85
 2025-12-26,False,,False,False,True,False,summer,0.65
 2025-12-27,False,,False,False,True,False,summer,0.65
+2025-12-28,False,,False,False,True,False,summer,0.65
+2025-12-29,False,,False,False,True,True,summer,0.65

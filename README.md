@@ -85,6 +85,23 @@ Atajo para pipeline completo:
 uv run python scripts/run_full_pipeline.py --domain industrial
 ```
 
+### UI interactiva local
+
+Para ejecutar una interfaz sencilla donde puedes:
+
+- seleccionar `industrial` o `restaurant`
+- lanzar el pipeline por dominio
+- revisar logs de ejecución
+- visualizar dashboards interactivos con filtros, KPIs y gráficos dinámicos
+- consultar métricas, predicciones y artefactos por dominio
+- abrir también una galería secundaria de imágenes estáticas generadas
+
+usa:
+
+```bash
+uv run python scripts/run_dashboard_ui.py
+```
+
 Compatibilidad con el comando historico:
 
 ```bash

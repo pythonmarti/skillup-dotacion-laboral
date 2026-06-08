@@ -145,7 +145,7 @@ def estimate_required_staff(covers: float, delivery_orders: float, service_perio
 def generate_restaurant_demand(calendar_df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
     logger.info("[restaurant] Generando demanda operativa")
     rng = np.random.default_rng(seed)
-    base_covers = {"11_13": 38, "13_15": 62, "19_21": 78, "21_23": 46}
+    base_covers = {"11_13": 26, "13_15": 74, "19_21": 78, "21_23": 38}
     day_multiplier = {0: 0.92, 1: 0.94, 2: 0.98, 3: 1.03, 4: 1.18, 5: 1.28, 6: 1.12}
     records = []
 
@@ -156,15 +156,17 @@ def generate_restaurant_demand(calendar_df: pd.DataFrame, seed: int = 42) -> pd.
             promo_flag = bool(rng.random() < (0.16 if service_period in {"11_13", "13_15"} else 0.10))
             local_event_flag = bool(rng.random() < (0.18 if date.dayofweek in {4, 5} else 0.07))
             weather_impact = rng.normal(-0.03 if cal["season"] == "winter" else 0.01, 0.08)
-            reservation_base = {"11_13": 10, "13_15": 22, "19_21": 34, "21_23": 18}[service_period]
-            walk_in_ratio = float(np.clip(rng.normal(0.48 if service_period.startswith("19") else 0.58, 0.08), 0.20, 0.85))
-            delivery_base = {"11_13": 8, "13_15": 14, "19_21": 24, "21_23": 16}[service_period]
+            reservation_base = {"11_13": 7, "13_15": 28, "19_21": 34, "21_23": 15}[service_period]
+            walk_in_ratio = float(np.clip(rng.normal(0.42 if service_period == "13_15" else (0.48 if service_period.startswith("19") else 0.58), 0.10), 0.20, 0.90))
+            delivery_base = {"11_13": 7, "13_15": 18, "19_21": 24, "21_23": 14}[service_period]
 
             multiplier = day_multiplier[date.dayofweek]
             if cal["is_holiday"]:
                 multiplier += 0.22
             if cal["is_holiday_eve"] and service_period in {"19_21", "21_23"}:
                 multiplier += 0.14
+            if service_period == "13_15":
+                multiplier += 0.08
             if cal["is_payday_window"]:
                 multiplier += 0.08
             if promo_flag:
@@ -173,10 +175,12 @@ def generate_restaurant_demand(calendar_df: pd.DataFrame, seed: int = 42) -> pd.
                 multiplier += 0.10
             multiplier += float(weather_impact)
 
-            forecast_covers = max(22, int(round(base_covers[service_period] * multiplier + rng.normal(0, 5))))
-            reservation_count = max(4, int(round(reservation_base * multiplier + rng.normal(0, 4))))
+            demand_noise = 7 if service_period == "13_15" else 5
+            reservation_noise = 5 if service_period == "13_15" else 4
+            forecast_covers = max(22, int(round(base_covers[service_period] * multiplier + rng.normal(0, demand_noise))))
+            reservation_count = max(4, int(round(reservation_base * multiplier + rng.normal(0, reservation_noise))))
             delivery_orders = max(2, int(round(delivery_base * (1.0 - weather_impact) + rng.normal(0, 3))))
-            actual_covers = max(18, int(round(forecast_covers * rng.normal(1.0, 0.10) + reservation_count * 0.08 + local_event_flag * 6)))
+            actual_covers = max(18, int(round(forecast_covers * rng.normal(1.02 if service_period == "13_15" else 1.0, 0.12 if service_period == "13_15" else 0.10) + reservation_count * 0.08 + local_event_flag * 6)))
             avg_ticket = 18500 if service_period in {"19_21", "21_23"} else 14200
             forecast_sales = int(round(forecast_covers * avg_ticket + delivery_orders * 9500))
             actual_sales = int(round(actual_covers * avg_ticket * rng.normal(1.0, 0.06) + delivery_orders * 9800))
@@ -249,7 +253,7 @@ def generate_restaurant_work_records(employees_df: pd.DataFrame, demand_df: pd.D
             )
 
             for role, needed in required.items():
-                buffer = 1 if role in {"garzon", "cocinero_linea"} and demand_row["service_period"] in {"13_15", "19_21"} else 0
+                buffer = 1 if role in {"garzon", "cocinero_linea"} and demand_row["service_period"] == "19_21" else 0
                 target_count = needed + buffer
                 primary_candidates = employees_df[employees_df["role"] == role]["employee_id"].tolist()
                 backup_candidates = employees_df[(employees_df["backup_role"] == role) & (employees_df["cross_trained"])]["employee_id"].tolist()
