@@ -1,71 +1,55 @@
-# SkillUp - Predicción de Dotación Laboral y Riesgo de Déficit
+# SkillUp - Predicción de Dotación y Riesgo de Déficit
 
-Sistema de predicción de dotación de personal y riesgo de déficit operacional a nivel de **Área-Turno-Día** . El sistema combina datos demográficos con métricas biométricas agregadas provenientes de wearables (ritmo cardíaco, HRV, sueño, estrés y fatiga acumulada) para predecir la disponibilidad real del personal.
+SkillUp es una plataforma de simulación, ETL, modelado, inferencia y visualización para problemas de dotación laboral. Actualmente soporta dos dominios operativos:
 
----
+- `industrial`: cobertura por `plant_area + shift + date`
+- `restaurant`: cobertura por `date + service_period` para un restaurante casual dining con calendario de Chile
 
-## Paradigma del Proyecto
-
-1. **Modelado Fisiológico Realista:** Los generadores simulan periodos de enfermedad multi-día precedidos por fases de incubación (1-2 días) con degradación fisiológica (HR más alto, HRV menor, peor calidad de sueño y aumento de estrés).
-2. **Nivel de Agregación (Área-Turno-Día):** La planificación industrial requiere saber si la dotación total programada cumplirá con el mínimo operacional (`REQUIRED_STAFF` definido en `config/settings.py`).
-3. **Métricas de conjunto:** Las variables biométricas individuales se agregan para representar el estado colectivo de salud, estrés y fatiga del conjunto de trabajadores programados.
+Además incluye un flujo documental de fichas médicas en PDF, extracción a CSV estructurado y una UI interactiva para operar pipelines y revisar dashboards.
 
 ---
 
-## Modelos Implementados
+## Requisitos
 
-Se entrenan y evalúan tres aproximaciones para la toma de decisiones:
-1. **Modelo 1: Regresor de Headcount (RandomForest)**
-   - **Objetivo:** Predecir exactamente cuántos operadores asistirán en un Área, Turno y Día específico.
-   - **Métricas:** MAE, RMSE y $R^2$.
-2. **Modelo 2: Clasificador de Riesgo de Déficit (XGBoost)**
-   - **Objetivo:** Clasificar si habrá déficit de personal (`actual_headcount < required_headcount`) y dar una probabilidad.
-   - **Métricas:** AUC-ROC, PR-AUC, F1-Score, Accuracy, Precision y Recall.
-3. **Modelo 3: Ensamble Calibrado (Isotonic Calibrated XGBoost)**
-   - **Objetivo:** Calibrar las probabilidades de déficit del modelo XGBoost utilizando validación cruzada. Es vital para que un "70% de riesgo de déficit" en un dashboard o consumidor externo corresponda exactamente a una frecuencia del 70% de casos reales.
-   - **Métricas:** Brier Score y Curva de Calibración.
+- Python `3.13+`
+- `uv`
 
----
+Instalación:
 
-## Requisitos e Instalación
-
-- **Python 3.13+**
-- **uv**
-
-Para instalar las dependencias y sincronizar el entorno virtual:
 ```bash
 uv sync
 ```
 
 ---
 
-## Guía de Ejecución
+## Dominios Disponibles
 
-### Selector de dominio
+### Industrial
 
-El proyecto ahora soporta seleccion de dominio por CLI:
+- unidad de decisión: `Área + Turno + Día`
+- foco: disponibilidad real, fatiga colectiva, ausentismo y déficit operacional
+- salidas: métricas de modelos, predicciones, artefactos entrenados y gráficos de evaluación
+
+### Restaurant
+
+- unidad de decisión: `Fecha + Franja horaria`
+- franjas: `11_13`, `13_15`, `19_21`, `21_23`
+- foco: horas peak, fines de semana, festivos chilenos, déficit general y por rol crítico
+- salidas: predicciones operativas, recomendaciones de staffing y dashboard ejecutivo
+
+---
+
+## Ejecución por Dominio
+
+El proyecto se opera con un selector de dominio y stages estandarizados.
+
+Comando base:
 
 ```bash
-uv run python scripts/run_pipeline.py --domain industrial --stage full
-uv run python scripts/run_pipeline.py --domain restaurant --stage full
+uv run python scripts/run_pipeline.py --domain <industrial|restaurant> --stage <generate|etl|train|infer|report|full>
 ```
 
-Ejemplo recomendado para el flujo restaurant casual dining:
-
-```bash
-uv run python scripts/run_pipeline.py --domain restaurant --stage full --employees 72 --days 180 --seed 42
-```
-
-Comandos utiles por stage:
-
-```bash
-uv run python scripts/run_pipeline.py --domain industrial --stage generate
-uv run python scripts/run_pipeline.py --domain industrial --stage etl
-uv run python scripts/run_pipeline.py --domain industrial --stage train
-uv run python scripts/run_pipeline.py --domain industrial --stage infer
-```
-
-Tambien puedes listar dominios disponibles:
+Listar dominios:
 
 ```bash
 uv run python scripts/run_pipeline.py --list-domains
@@ -77,108 +61,117 @@ Stages disponibles:
 - `etl`
 - `train`
 - `infer`
+- `report`
 - `full`
 
-Atajo para pipeline completo:
+### Pipeline completo industrial
+
+```bash
+uv run python scripts/run_pipeline.py --domain industrial --stage full
+```
+
+Atajos equivalentes:
 
 ```bash
 uv run python scripts/run_full_pipeline.py --domain industrial
+uv run python scripts/04_full_pipeline.py --domain industrial
 ```
 
-### UI interactiva local
+### Pipeline completo restaurant
 
-Para ejecutar una interfaz sencilla donde puedes:
+```bash
+uv run python scripts/run_pipeline.py --domain restaurant --stage full --employees 72 --days 180 --seed 42
+```
 
-- seleccionar `industrial` o `restaurant`
-- lanzar el pipeline por dominio
-- revisar logs de ejecución
-- visualizar dashboards interactivos con filtros, KPIs y gráficos dinámicos
-- consultar métricas, predicciones y artefactos por dominio
-- abrir también una galería secundaria de imágenes estáticas generadas
+### Ejemplos por stage
 
-usa:
+```bash
+uv run python scripts/run_pipeline.py --domain industrial --stage generate
+uv run python scripts/run_pipeline.py --domain industrial --stage etl
+uv run python scripts/run_pipeline.py --domain industrial --stage train
+uv run python scripts/run_pipeline.py --domain industrial --stage infer
+uv run python scripts/run_pipeline.py --domain restaurant --stage report
+```
+
+---
+
+## Qué hace cada flujo
+
+### Industrial
+
+`full` ejecuta:
+
+1. generación de `employees.csv`, `work_records.csv`, `biometrics.csv`, `absenteeism.csv`
+2. ETL y creación de `ml_features`
+3. entrenamiento de modelos de dotación y déficit
+4. inferencia sobre `ml_features`
+
+Salida principal en:
+
+- `data/raw/`
+- `data/processed/`
+- `data/skillup.db`
+
+### Restaurant
+
+`full` ejecuta:
+
+1. generación de datos en `data/restaurant/raw/`
+2. ETL y creación de `restaurant_ml_features`
+3. entrenamiento de modelos generales y por rol crítico
+4. inferencia operativa
+5. dashboard ejecutivo en `data/restaurant/processed/restaurant_executive_dashboard.png`
+
+Salida principal en:
+
+- `data/restaurant/raw/`
+- `data/restaurant/processed/`
+- `data/restaurant/restaurant_skillup.db`
+
+---
+
+## UI Interactiva
+
+La aplicación incluye una UI con Streamlit para operar pipelines y visualizar dashboards interactivos.
+
+Lanzamiento:
 
 ```bash
 uv run python scripts/run_dashboard_ui.py
 ```
 
-Compatibilidad con el comando historico:
+La UI permite:
 
-```bash
-uv run python scripts/04_full_pipeline.py --domain industrial
-```
+- seleccionar `industrial` o `restaurant`
+- ejecutar pipelines por dominio y stage
+- revisar logs de ejecución
+- visualizar KPIs y gráficos interactivos
+- consultar métricas, predicciones y artefactos por dominio
+- abrir una galería secundaria de imágenes estáticas generadas
 
-Estado actual de dominios:
+---
 
-- `industrial`: implementado y operativo
-- `restaurant`: implementado y operativo con calendario Chile, ETL, entrenamiento, inferencia y dashboard ejecutivo
+## Flujo de Fichas Médicas
 
-El flujo industrial de punta a punta puede ejecutarse con cualquiera de estos comandos:
-
-```bash
-uv run python scripts/run_full_pipeline.py --domain industrial
-uv run python scripts/04_full_pipeline.py --domain industrial
-```
-
-Este flujo orquesta los siguientes pasos de forma secuencial:
-1. **Generación de Datos (`01_generate_data.py`):** Crea perfiles demográficos, registros de turnos de trabajo, series temporales biométricas (wearables) y eventos de ausentismo médico/casual en `data/raw/`.
-2. **ETL y Feature Engineering (`02_run_etl.py`):** Limpia biometría, imputa datos vacíos con KNN, normaliza (Z-Scores individuales), crea ventanas móviles (fatiga de 14 días), agrega todo a nivel de Área-Turno-Día y guarda la matriz resultante en `ml_features` dentro de la base de datos SQLite `data/skillup.db`.
-3. **Entrenamiento y Evaluación (`03_train_model.py`):** Aplica validación temporal (split ordenado por fecha), entrena los 3 modelos descritos, optimiza los umbrales de decisión basados en el conjunto de entrenamiento, evalúa en test y genera gráficos de reporte en `data/processed/`.
-
-### Generacion de fichas medicas PDF
-
-Para generar una ficha medica en PDF por empleado:
+### Generar PDFs
 
 ```bash
 uv run python scripts/05_generate_medical_forms.py
 ```
 
-Salida por defecto:
-
-- PDFs individuales en `data/raw/medical_forms/`
-- por defecto se genera solo la ficha visual
-- opcionalmente puedes agregar una segunda pagina estructurada para digitalizacion
-
-Tambien puedes indicar rutas personalizadas:
-
-```bash
-uv run python scripts/05_generate_medical_forms.py --input data/raw/employees.csv --output-dir data/raw/medical_forms
-```
-
-Para incluir la segunda pagina estructurada:
-
-```bash
-uv run python scripts/05_generate_medical_forms.py --include-structured-page
-```
-
-### Extraccion de fichas medicas a CSV
-
-Para convertir un lote de fichas medicas PDF en un CSV compatible con `employees.csv`:
+### Extraer PDFs a CSV
 
 ```bash
 uv run python scripts/06_extract_medical_forms.py
 ```
 
-Salida por defecto:
-
-- entrada: `data/raw/medical_forms/`
-- salida: `data/raw/employees_from_forms.csv`
-
-Opciones utiles:
-
-```bash
-uv run python scripts/06_extract_medical_forms.py --input-dir data/raw/medical_forms --output-csv data/raw/employees_from_forms.csv
-```
-
-Para validar que el CSV extraido sea exactamente igual a `employees.csv`:
+### Validar contra `employees.csv`
 
 ```bash
 uv run python scripts/06_extract_medical_forms.py --validate-against data/raw/employees.csv
 ```
 
-### Usar el CSV extraido en el ETL
-
-El ETL acepta una fuente alternativa de empleados. Para correrlo usando `employees_from_forms.csv`:
+### Ejecutar ETL usando el CSV extraído
 
 ```bash
 uv run python scripts/02_run_etl.py --employees-path data/raw/employees_from_forms.csv
@@ -186,149 +179,115 @@ uv run python scripts/02_run_etl.py --employees-path data/raw/employees_from_for
 
 ### Flujo unificado PDF -> CSV -> ETL
 
-Para ejecutar todo en un solo paso:
-
 ```bash
 uv run python scripts/07_forms_to_etl.py
 ```
 
-Por defecto este flujo:
-
-- extrae PDFs desde `data/raw/medical_forms/`
-- genera `data/raw/employees_from_forms.csv`
-- valida contra `data/raw/employees.csv`
-- ejecuta el ETL usando el CSV extraido
-
-Si quieres omitir la validacion exacta:
-
-```bash
-uv run python scripts/07_forms_to_etl.py --skip-validation
-```
-
-### Flujo completo PDF -> CSV -> ETL -> metricas del modelo
-
-Para ejecutar todo hasta entrenamiento, evaluacion y generacion de metricas:
+### Flujo unificado PDF -> CSV -> ETL -> métricas del modelo
 
 ```bash
 uv run python scripts/08_forms_to_model_metrics.py
 ```
 
-Este flujo:
-
-- extrae fichas PDF
-- genera `employees_from_forms.csv`
-- valida contra `employees.csv`
-- ejecuta ETL y genera `ml_features`
-- entrena los modelos
-- guarda metricas y graficos en `data/processed/`
-
 ### Inferencia con artefactos entrenados
-
-Despues de entrenar, puedes ejecutar inferencia sobre `ml_features` y guardar predicciones + metricas:
 
 ```bash
 uv run python scripts/09_run_inference.py
 ```
 
-Salida por defecto:
+---
 
-- `data/processed/staffing_inference_predictions.csv`
-- `data/processed/staffing_inference_metrics.json`
+## Artefactos Relevantes
 
-El entrenamiento guarda ademas:
+### Industrial
 
-- `data/processed/headcount_regressor.pkl`
-- `data/processed/deficit_classifier_xgboost.pkl`
-- `data/processed/deficit_classifier_calibrated.pkl`
-- `data/processed/model_artifacts.json`
+Ubicación: `data/processed/`
 
-Tambien puedes lanzar inferencia desde el runner multi-dominio:
+- `model_comparison_metrics.csv`
+- `headcount_regressor.pkl`
+- `deficit_classifier_xgboost.pkl`
+- `deficit_classifier_calibrated.pkl`
+- `model_artifacts.json`
+- `staffing_inference_predictions.csv`
+- `staffing_inference_metrics.json`
+- gráficos de evaluación (`roc`, `pr`, `calibration`, `feature_importance`, etc.)
 
-```bash
-uv run python scripts/run_pipeline.py --domain industrial --stage infer
-uv run python scripts/run_pipeline.py --domain restaurant --stage infer
-```
+### Restaurant
 
-Para generar solo el dashboard ejecutivo del dominio restaurant:
+Ubicación: `data/restaurant/processed/`
 
-```bash
-uv run python scripts/run_pipeline.py --domain restaurant --stage report
-```
-
-Nota: el flujo usa `pdftotext` para PDFs nativos. Si el PDF viene escaneado y no contiene texto util, el script intenta usar OCR solo si `tesseract` esta instalado.
+- `restaurant_ml_features.csv`
+- `restaurant_model_metrics.csv`
+- `restaurant_model_artifacts.json`
+- `restaurant_staffing_predictions.csv`
+- `restaurant_staffing_metrics.json`
+- `restaurant_executive_dashboard.png`
+- modelos por rol crítico y modelo general
 
 ---
 
-## Visualización de Resultados y Métricas
+## Cómo Leer la Dotación
 
-Una vez que ejecutas el pipeline, los resultados de desempeño se guardan en el directorio `data/processed/`. Puedes abrir e inspeccionar los siguientes archivos:
+- **Dotación actual**: personal que efectivamente estuvo disponible u operando.
+- **Dotación requerida**: personal que el negocio necesita para atender la demanda sin degradar la operación.
+- **Dotación predicha**: personal que el modelo estima que estará disponible.
 
-### Tabla Comparativa de Métricas
-- El archivo **[model_comparison_metrics.csv](data/processed/model_comparison_metrics.csv)** resume el rendimiento de los modelos de clasificación (Modelo 2 vs Modelo 3).
+Interpretación operativa:
 
-### Gráficos de Rendimiento y Negocio
-- **[headcount_actual_vs_predicted.png](data/processed/headcount_actual_vs_predicted.png):** Gráfico de dispersión para el **Modelo 1** comparando la dotación real vs. la predicha. La cercanía a la línea diagonal roja indica precisión perfecta.
-- **[calibration_curve_staffing.png](data/processed/calibration_curve_staffing.png):** Curva de calibración. Compara el **Modelo 2** (XGBoost directo) y el **Modelo 3** (Calibrado). Muestra cómo la calibración isotónica alinea las probabilidades predichas con la realidad del negocio.
-- **[roc_curve_staffing.png](data/processed/roc_curve_staffing.png):** Curva ROC para comparar la capacidad de discriminación de los Modelos 2 y 3.
-- **[pr_curve_staffing.png](data/processed/pr_curve_staffing.png):** Curva Precision-Recall, crítica para conjuntos de datos donde el déficit es un evento desbalanceado.
-- **[feature_importance_staffing.png](data/processed/feature_importance_staffing.png):** Gráfico de barras con las 20 variables más importantes para predecir el déficit (por ejemplo, fatiga colectiva, promedio de estrés, turnos específicos y lags históricos).
+```text
+si dotación predicha < dotación requerida
+=> existe riesgo de déficit esperado
+```
 
 ---
 
-## Pruebas Unitarias (Tests)
+## Documentación Técnica
 
-Para ejecutar la suite de pruebas unitarias que validan la lógica de simulación, la degradación biométrica y el cálculo agregación/déficit:
+Consulta:
 
-```bash
-uv run pytest tests/ -v
-```
+- `docs/arquitectura_validada.md`
+- `docs/pipeline_actualizado.md`
+
+El segundo documento explica la arquitectura multi-dominio actual, el flujo industrial, el flujo restaurant, la UI y el pipeline de fichas médicas.
 
 ---
 
 ## Estructura del Proyecto
 
-```
+```text
 skillup/
 ├── config/
-│   └── settings.py              # Constantes, límites de dotación por área
+│   ├── settings.py
+│   └── restaurant_settings.py
 ├── data/
-│   ├── raw/                     # Datos sintéticos generados (CSVs)
-│   ├── processed/               # Gráficas de métricas y CSV de comparación
-│   └── skillup.db               # Base de datos SQLite
+│   ├── raw/
+│   ├── processed/
+│   ├── restaurant/
+│   └── skillup.db
+├── docs/
+│   ├── arquitectura_validada.md
+│   └── pipeline_actualizado.md
 ├── scripts/
-│   ├── run_pipeline.py          # Runner multi-dominio por stage
-│   ├── run_full_pipeline.py     # Atajo multi-dominio para pipeline completo
-│   ├── 01_generate_data.py      # Orquestador de generación de datos
-│   ├── 02_run_etl.py            # Orquestador ETL
-│   ├── 03_train_model.py        # Orquestador de entrenamiento de modelos
-│   ├── 04_full_pipeline.py      # Compat wrapper del pipeline completo
+│   ├── run_pipeline.py
+│   ├── run_full_pipeline.py
+│   ├── run_dashboard_ui.py
+│   ├── 01_generate_data.py
+│   ├── 02_run_etl.py
+│   ├── 03_train_model.py
+│   ├── 04_full_pipeline.py
 │   ├── 05_generate_medical_forms.py
 │   ├── 06_extract_medical_forms.py
 │   ├── 07_forms_to_etl.py
 │   ├── 08_forms_to_model_metrics.py
 │   └── 09_run_inference.py
 ├── src/
-│   ├── domains/                 # Registro y selección de dominios
-│   ├── generators/              # Lógica de generación sintética
-│   │   ├── employees.py         # Demográficos
-│   │   ├── work_records.py      # Calendario y turnos
-│   │   ├── biometrics.py        # Series de wearables (incubación/enfermedad)
-│   │   └── absenteeism.py       # Registro de ausentismo médico y casual
-│   ├── etl/                     # Pipeline de datos
-│   │   ├── extract.py           # Extractor de CSV
-│   │   ├── transform.py         # Limpieza, normalización y agregación Área-Turno-Día
-│   │   └── load.py              # Carga e importación a SQLite con esquemas
-│   ├── models/                  # Lógica de Machine Learning
-│   │   ├── features.py          # Preparación de matriz X, y para dotación
-│   │   ├── staffing_models.py   # Definición de Modelos 1, 2 y 3 y métricas
-│   │   ├── train.py             # Funciones auxiliares de entrenamiento
-│   │   └── evaluate.py          # Visualizaciones y reporte
-│   └── utils/                   # Herramientas
-│       ├── database.py          # Conectores SQLite
-│       └── validators.py        # Validadores de rangos fisiológicos
-├── tests/
-│   ├── test_generators.py       # Tests heredados de generación
-│   └── test_staffing.py         # Tests agregados de simulación y dotación
-├── pyproject.toml               # Dependencias y configuración de Pyright
-└── pyrightconfig.json           # Configuración del servidor de lenguajes
+│   ├── domains/
+│   ├── etl/
+│   ├── extraction/
+│   ├── generators/
+│   ├── models/
+│   ├── restaurant/
+│   ├── ui/
+│   └── utils/
+└── tests/
 ```
