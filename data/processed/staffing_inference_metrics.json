@@ -1,0 +1,41 @@
+{
+  "metrics": {
+    "regression": {
+      "MAE": 0.19929914529914525,
+      "RMSE": 0.3109453465595016,
+      "R2": 0.9966353513020942
+    },
+    "classification_xgboost": {
+      "AUC-ROC": 0.999243974132863,
+      "PR-AUC": 0.997199065304516,
+      "Brier Score": 0.012736248783767223,
+      "Accuracy": 0.9923076923076923,
+      "Precision": 0.9864864864864865,
+      "Recall": 0.9733333333333334,
+      "F1-Score": 0.9798657718120806
+    },
+    "classification_calibrated": {
+      "AUC-ROC": 0.9992110523221635,
+      "PR-AUC": 0.9968802884765726,
+      "Brier Score": 0.009681175538344754,
+      "Accuracy": 0.9927350427350428,
+      "Precision": 0.9909297052154195,
+      "Recall": 0.9711111111111111,
+      "F1-Score": 0.9809203142536476
+    },
+    "classification_best": {
+      "AUC-ROC": 0.999243974132863,
+      "PR-AUC": 0.997199065304516,
+      "Brier Score": 0.012736248783767223,
+      "Accuracy": 0.9923076923076923,
+      "Precision": 0.9864864864864865,
+      "Recall": 0.9733333333333334,
+      "F1-Score": 0.9798657718120806
+    }
+  },
+  "best_classifier": {
+    "name": "Modelo 2 (XGBoost)",
+    "path": "deficit_classifier_xgboost.pkl",
+    "threshold": 0.3931993544101715
+  }
+}

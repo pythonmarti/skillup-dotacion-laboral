@@ -107,7 +107,7 @@ def plot_precision_recall_curve(y_true, y_prob_dict, save_path=None):
     ax.axhline(baseline, color="gray", linestyle="--", alpha=0.5, label=f"Baseline ({baseline:.3f})")
     ax.set_xlabel("Recall")
     ax.set_ylabel("Precision")
-    ax.set_title("Precision-Recall Curve - Prediccion de Ausentismo")
+    ax.set_title("Precision-Recall Curve - Riesgo de Deficit")
     ax.legend(loc="upper right")
     ax.grid(True, alpha=0.3)
 
@@ -158,7 +158,7 @@ def plot_roc_curve(y_true, y_prob_dict, save_path=None):
     ax.plot([0, 1], [0, 1], "k--", alpha=0.5, label="Random")
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
-    ax.set_title("ROC Curve - Prediccion de Ausentismo")
+    ax.set_title("ROC Curve - Riesgo de Deficit")
     ax.legend(loc="lower right")
     ax.grid(True, alpha=0.3)
 
@@ -203,8 +203,8 @@ def plot_confusion_matrix(y_true, y_pred, model_name, save_path=None):
         annot=True,
         fmt="d",
         cmap="Blues",
-        xticklabels=["No Ausente", "Ausente"],
-        yticklabels=["No Ausente", "Ausente"],
+        xticklabels=["Sin Deficit", "Con Deficit"],
+        yticklabels=["Sin Deficit", "Con Deficit"],
         ax=ax,
     )
     ax.set_xlabel("Prediccion")

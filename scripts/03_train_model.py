@@ -1,10 +1,12 @@
 """Script de entrenamiento y evaluación de modelos predictivos de dotación laboral."""
 
+import json
 import logging
 import sys
 import warnings
 from pathlib import Path
 
+import joblib
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -32,6 +34,69 @@ from src.models.evaluate import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _select_best_classifier(class2_metrics, class3_metrics) -> str:
+    candidates = {
+        "Modelo 2 (XGBoost)": class2_metrics,
+        "Modelo 3 (Calibrado)": class3_metrics,
+    }
+    return min(
+        candidates,
+        key=lambda name: (
+            candidates[name]["Brier Score"],
+            -candidates[name]["F1-Score"],
+            -candidates[name]["AUC-ROC"],
+        ),
+    )
+
+
+def _save_model_artifacts(
+    feature_names,
+    regressor,
+    classifier_df,
+    calibrated_model,
+    optimal_th_c2,
+    optimal_th_c3,
+    reg_metrics,
+    class2_metrics,
+    class3_metrics,
+):
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    joblib.dump(regressor, PROCESSED_DIR / "headcount_regressor.pkl")
+    joblib.dump(classifier_df, PROCESSED_DIR / "deficit_classifier_xgboost.pkl")
+    joblib.dump(calibrated_model, PROCESSED_DIR / "deficit_classifier_calibrated.pkl")
+
+    best_classifier_name = _select_best_classifier(class2_metrics, class3_metrics)
+    best_classifier_path = (
+        "deficit_classifier_xgboost.pkl"
+        if best_classifier_name == "Modelo 2 (XGBoost)"
+        else "deficit_classifier_calibrated.pkl"
+    )
+
+    metadata = {
+        "feature_names": list(feature_names),
+        "thresholds": {
+            "Modelo 2 (XGBoost)": float(optimal_th_c2),
+            "Modelo 3 (Calibrado)": float(optimal_th_c3),
+        },
+        "metrics": {
+            "Modelo 1 (Headcount)": {k: float(v) for k, v in reg_metrics.items()},
+            "Modelo 2 (XGBoost)": {k: float(v) for k, v in class2_metrics.items()},
+            "Modelo 3 (Calibrado)": {k: float(v) for k, v in class3_metrics.items()},
+        },
+        "best_classifier": {
+            "name": best_classifier_name,
+            "path": best_classifier_path,
+            "threshold": float(
+                optimal_th_c2 if best_classifier_name == "Modelo 2 (XGBoost)" else optimal_th_c3
+            ),
+        },
+    }
+
+    metadata_path = PROCESSED_DIR / "model_artifacts.json"
+    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    logger.info("Artefactos de modelo guardados en %s", PROCESSED_DIR)
 
 
 def plot_regression_actual_vs_predicted(y_true, y_pred, save_path):
@@ -216,6 +281,17 @@ def main():
         "Modelo 3 (Calibrado)": class3_metrics,
     }).T
     comp_df.to_csv(PROCESSED_DIR / "model_comparison_metrics.csv")
+    _save_model_artifacts(
+        feature_names,
+        regressor,
+        classifier_df,
+        calibrated_model,
+        optimal_th_c2,
+        optimal_th_c3,
+        reg_metrics,
+        class2_metrics,
+        class3_metrics,
+    )
 
     logger.info("=" * 60)
     logger.info("TABLA COMPARATIVA DE MODELOS DE DEFICIT")

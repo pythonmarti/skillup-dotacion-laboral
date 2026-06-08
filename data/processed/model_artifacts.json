@@ -1,0 +1,76 @@
+{
+  "feature_names": [
+    "scheduled_headcount",
+    "hr_mean_bpm",
+    "hrv_rmssd_ms",
+    "stress_score",
+    "sleep_duration_hours",
+    "sleep_efficiency_pct",
+    "steps",
+    "fatigue_14d",
+    "hr_mean_bpm_7d_mean",
+    "hrv_rmssd_ms_7d_mean",
+    "stress_score_7d_mean",
+    "sleep_duration_hours_7d_mean",
+    "hrv_rmssd_ms_trend",
+    "stress_score_trend",
+    "age",
+    "bmi",
+    "distance_to_work_km",
+    "required_headcount",
+    "day_of_week",
+    "is_monday",
+    "is_friday",
+    "is_weekend",
+    "area_shift_absentee_rate_lag1",
+    "actual_headcount_lag1",
+    "area_shift_absentee_rate_lag2",
+    "actual_headcount_lag2",
+    "area_shift_absentee_rate_lag3",
+    "actual_headcount_lag3",
+    "area_shift_absentee_rate_lag7",
+    "actual_headcount_lag7",
+    "plant_area_almacenamiento",
+    "plant_area_cracking",
+    "plant_area_destilacion",
+    "plant_area_mantenimiento",
+    "plant_area_oficinas",
+    "shift_diurno",
+    "shift_nocturno",
+    "shift_vespertino"
+  ],
+  "thresholds": {
+    "Modelo 2 (XGBoost)": 0.3931993544101715,
+    "Modelo 3 (Calibrado)": 0.4552287608385086
+  },
+  "metrics": {
+    "Modelo 1 (Headcount)": {
+      "MAE": 0.40709401709401705,
+      "RMSE": 0.5590039982732414,
+      "R2": 0.9896487524158949
+    },
+    "Modelo 2 (XGBoost)": {
+      "AUC-ROC": 0.9951016865079365,
+      "PR-AUC": 0.9823093907766212,
+      "Brier Score": 0.021114898845553398,
+      "Accuracy": 0.9743589743589743,
+      "Precision": 0.95,
+      "Recall": 0.9047619047619048,
+      "F1-Score": 0.926829268292683
+    },
+    "Modelo 3 (Calibrado)": {
+      "AUC-ROC": 0.9935825892857144,
+      "PR-AUC": 0.9756077411606576,
+      "Brier Score": 0.02133701397443641,
+      "Accuracy": 0.9743589743589743,
+      "Precision": 0.9615384615384616,
+      "Recall": 0.8928571428571429,
+      "F1-Score": 0.9259259259259259
+    }
+  },
+  "best_classifier": {
+    "name": "Modelo 2 (XGBoost)",
+    "path": "deficit_classifier_xgboost.pkl",
+    "threshold": 0.3931993544101715
+  }
+}

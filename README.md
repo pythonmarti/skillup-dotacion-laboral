@@ -149,6 +149,26 @@ Este flujo:
 - entrena los modelos
 - guarda metricas y graficos en `data/processed/`
 
+### Inferencia con artefactos entrenados
+
+Despues de entrenar, puedes ejecutar inferencia sobre `ml_features` y guardar predicciones + metricas:
+
+```bash
+uv run python scripts/09_run_inference.py
+```
+
+Salida por defecto:
+
+- `data/processed/staffing_inference_predictions.csv`
+- `data/processed/staffing_inference_metrics.json`
+
+El entrenamiento guarda ademas:
+
+- `data/processed/headcount_regressor.pkl`
+- `data/processed/deficit_classifier_xgboost.pkl`
+- `data/processed/deficit_classifier_calibrated.pkl`
+- `data/processed/model_artifacts.json`
+
 Nota: el flujo usa `pdftotext` para PDFs nativos. Si el PDF viene escaneado y no contiene texto util, el script intenta usar OCR solo si `tesseract` esta instalado.
 
 ---

@@ -1,0 +1,201 @@
+employee_id,name,age,gender,bmi,education_level,plant_area,position,seniority_years,shift_pattern,distance_to_work_km,children,social_drinker,smoker,hire_date
+EMP_001,Aldonza Laureano Guevara,29,F,30.0,3,destilacion,operador_panel,5,fijo,12.0,1,False,False,2021-03-06
+EMP_002,Carlota Aurora Trejo,41,F,23.6,3,destilacion,supervisor,7,rotativo,10.5,3,True,False,2019-03-07
+EMP_003,Silvano Pichardo Aparicio,41,M,28.7,3,oficinas,ingeniero_proceso,1,fijo,19.9,0,True,False,2025-03-06
+EMP_004,Bernabé Gamez Gonzales,43,M,30.0,3,mantenimiento,tecnico_electrico,0,fijo,14.7,1,False,True,2026-03-06
+EMP_005,Sr. Rolando Farías,38,M,28.2,3,mantenimiento,tecnico_electrico,2,rotativo,9.8,0,False,False,2024-03-06
+EMP_006,Lic. Francisco Rangel,35,M,27.7,3,almacenamiento,supervisor,3,rotativo,8.4,0,False,False,2023-03-07
+EMP_007,Ing. Abelardo Crespo,30,M,29.0,2,mantenimiento,tecnico_mecanico,3,rotativo,9.5,1,True,True,2023-03-07
+EMP_008,Jorge Ledesma,41,M,25.1,3,destilacion,operador_panel,16,rotativo,11.3,1,False,True,2010-03-06
+EMP_009,Flavio Jonás Canales,30,M,28.6,3,cracking,supervisor,7,fijo,5.8,0,True,False,2019-03-07
+EMP_010,Juan Calderón Muñoz,24,M,28.7,3,destilacion,supervisor,1,fijo,8.0,1,False,False,2025-03-06
+EMP_011,Tomás Guillermo Armas Rico,39,M,27.9,2,cracking,operador_panel,0,rotativo,7.3,2,False,True,2026-03-06
+EMP_012,Sra. Josefina Berríos,29,F,28.3,1,cracking,operador_campo,1,fijo,5.5,1,False,False,2025-03-06
+EMP_013,Ing. Zeferino Nájera,36,M,31.3,3,destilacion,operador_campo,1,rotativo,11.7,2,False,False,2025-03-06
+EMP_014,Dr. Armando Armenta,32,M,35.5,3,mantenimiento,tecnico_instrumentista,3,fijo,16.6,1,False,True,2023-03-07
+EMP_015,Humberto Aurelio Gonzales,28,M,21.9,3,mantenimiento,supervisor,3,rotativo,34.6,2,True,False,2023-03-07
+EMP_016,Juan Ledesma Rendón,28,M,21.5,1,mantenimiento,supervisor,1,rotativo,39.2,1,False,False,2025-03-06
+EMP_017,Citlali Ivonne Mota Fuentes,37,F,26.3,1,destilacion,operador_campo,14,rotativo,11.7,2,False,False,2012-03-06
+EMP_018,Arturo Uriel de la Torre Tejeda,38,M,25.1,2,cracking,operador_campo,9,fijo,10.8,1,False,False,2017-03-06
+EMP_019,Emiliano Miguel Ojeda,38,M,27.9,4,almacenamiento,operador_logistica,18,rotativo,7.6,0,True,False,2008-03-06
+EMP_020,Sandra Vanesa Valdés Gaona,22,F,26.3,3,oficinas,coordinador,1,fijo,8.0,1,False,False,2025-03-06
+EMP_021,Andrés Gabino Aparicio Mata,55,M,21.9,3,mantenimiento,supervisor,0,rotativo,16.0,1,True,False,2026-03-06
+EMP_022,Gustavo Barraza,34,M,26.5,1,destilacion,operador_campo,0,rotativo,7.8,2,False,False,2026-03-06
+EMP_023,Ofelia Yolanda Mascareñas,32,F,28.3,2,destilacion,operador_campo,1,rotativo,6.6,1,True,False,2025-03-06
+EMP_024,Pablo Leonardo Reynoso,41,M,20.0,3,oficinas,analista,18,fijo,8.4,3,False,False,2008-03-06
+EMP_025,Estefanía Carlota Gurule,22,F,26.1,3,cracking,operador_campo,0,rotativo,48.5,1,False,False,2026-03-06
+EMP_026,Ing. Serafín Porras,35,M,32.2,4,cracking,operador_campo,3,rotativo,49.2,2,False,False,2023-03-07
+EMP_027,Lic. José Eduardo Gaona,28,M,30.1,3,destilacion,supervisor,0,fijo,21.9,1,False,False,2026-03-06
+EMP_028,Pedro Oswaldo Bustos,43,M,24.2,4,cracking,operador_panel,23,rotativo,15.6,2,False,False,2003-03-07
+EMP_029,Beatriz Corral Crespo,50,F,18.7,4,destilacion,supervisor,3,rotativo,24.0,2,False,False,2023-03-07
+EMP_030,Teodoro Barela,31,M,26.4,2,destilacion,operador_campo,11,rotativo,11.0,3,False,False,2015-03-07
+EMP_031,Juana Ybarra,44,F,30.4,1,oficinas,coordinador,1,fijo,44.0,1,False,False,2025-03-06
+EMP_032,Raúl Heredia,25,M,23.8,2,oficinas,administrativo,1,fijo,3.9,2,False,True,2025-03-06
+EMP_033,Sra. Trinidad Carrero,32,F,27.6,1,oficinas,coordinador,1,fijo,10.6,1,False,False,2025-03-06
+EMP_034,Ing. Jorge Carrasco,37,M,30.3,3,mantenimiento,tecnico_mecanico,2,fijo,7.1,5,True,True,2024-03-06
+EMP_035,Mariano Eloy Rendón Acosta,48,M,27.4,3,destilacion,supervisor,3,rotativo,23.2,2,False,True,2023-03-07
+EMP_036,Martha Conchita Sarabia Caraballo,23,F,30.7,1,destilacion,supervisor,1,rotativo,17.2,2,False,False,2025-03-06
+EMP_037,Patricio Uriel Farías Corral,46,M,25.7,4,destilacion,operador_panel,4,rotativo,64.2,0,True,False,2022-03-06
+EMP_038,Emiliano Reynaldo Tamez Abrego,40,M,26.9,2,cracking,operador_panel,4,rotativo,5.0,0,False,False,2022-03-06
+EMP_039,Ing. Óscar Almaraz,30,M,28.4,3,almacenamiento,operador_campo,0,fijo,28.5,1,False,False,2026-03-06
+EMP_040,José Eduardo Maldonado Grijalva,38,M,29.3,3,almacenamiento,operador_campo,18,rotativo,6.2,1,True,False,2008-03-06
+EMP_041,Gerardo Valverde Berríos,35,M,28.8,2,cracking,operador_campo,0,fijo,3.7,1,False,True,2026-03-06
+EMP_042,Omar Barrientos Tejada,33,M,36.7,3,cracking,supervisor,10,fijo,9.6,1,True,False,2016-03-06
+EMP_043,Cristian Nicolás Ulloa,32,M,30.6,4,almacenamiento,operador_logistica,1,rotativo,8.6,0,False,False,2025-03-06
+EMP_044,Guillermo Raúl Zepeda,35,M,23.2,4,destilacion,supervisor,3,rotativo,7.9,1,True,False,2023-03-07
+EMP_045,Dolores Tirado,39,F,26.3,3,mantenimiento,tecnico_instrumentista,1,rotativo,20.7,3,False,False,2025-03-06
+EMP_046,Jacinto Leonel Niño,29,M,22.0,2,almacenamiento,operador_logistica,0,rotativo,15.9,1,False,True,2026-03-06
+EMP_047,Rafaél Razo,32,M,29.2,2,almacenamiento,operador_campo,3,fijo,14.2,2,False,False,2023-03-07
+EMP_048,Gerónimo Garza Barela,28,M,25.8,3,destilacion,operador_campo,2,rotativo,6.2,3,False,False,2024-03-06
+EMP_049,Agustín Sergio Urrutia Godínez,24,M,21.9,3,cracking,supervisor,4,fijo,18.4,1,False,False,2022-03-06
+EMP_050,Srita. Abril Batista,44,F,28.8,2,destilacion,supervisor,0,rotativo,3.9,4,True,False,2026-03-06
+EMP_051,Elisa Barreto Aparicio,38,F,28.1,3,destilacion,supervisor,10,rotativo,5.3,1,False,False,2016-03-06
+EMP_052,Arturo Porfirio Granados Leiva,35,M,25.9,3,destilacion,operador_panel,0,rotativo,3.7,2,False,True,2026-03-06
+EMP_053,Fidel Tirado,24,M,27.7,4,cracking,operador_panel,0,rotativo,19.5,0,False,False,2026-03-06
+EMP_054,Salvador Samuel Rojas,35,M,20.2,3,almacenamiento,operador_logistica,6,fijo,3.1,1,False,False,2020-03-06
+EMP_055,Nicolás Lucas Espinal,40,M,24.1,2,cracking,operador_campo,8,rotativo,17.1,2,False,False,2018-03-06
+EMP_056,Bernardo Prado Moreno,34,M,25.1,3,destilacion,operador_campo,9,fijo,15.7,1,False,True,2017-03-06
+EMP_057,Luis Robles,22,M,23.1,2,almacenamiento,supervisor,0,rotativo,11.6,0,False,False,2026-03-06
+EMP_058,Bruno Ballesteros Padrón,36,M,29.6,1,destilacion,operador_campo,7,rotativo,10.3,1,False,False,2019-03-07
+EMP_059,Barbara Emilia Espinosa Espinal,37,F,31.5,2,cracking,supervisor,4,rotativo,22.5,0,False,False,2022-03-06
+EMP_060,Lic. Darío Pichardo,42,M,26.2,4,destilacion,supervisor,0,rotativo,3.3,1,False,False,2026-03-06
+EMP_061,Eugenia María del Carmen Haro,38,F,30.7,3,destilacion,supervisor,18,rotativo,9.6,1,False,False,2008-03-06
+EMP_062,Magdalena Urbina Calvillo,44,F,29.6,3,destilacion,supervisor,4,rotativo,20.3,0,False,True,2022-03-06
+EMP_063,Reynaldo Alejandro Cabán,27,M,33.7,3,cracking,operador_campo,3,rotativo,14.3,1,False,False,2023-03-07
+EMP_064,Emilio Lucas Ruelas,37,M,34.2,3,destilacion,supervisor,17,fijo,10.4,1,True,False,2009-03-06
+EMP_065,Fidel Pacheco,41,M,19.9,1,almacenamiento,operador_logistica,1,rotativo,6.2,1,False,False,2025-03-06
+EMP_066,Emilio Ojeda Acevedo,36,M,22.0,2,almacenamiento,operador_logistica,0,fijo,14.9,1,False,False,2026-03-06
+EMP_067,Guillermo Rentería,40,M,22.4,2,destilacion,supervisor,7,rotativo,2.2,2,False,False,2019-03-07
+EMP_068,Manuel Rodrigo Ruiz Correa,41,M,33.2,1,oficinas,coordinador,4,fijo,6.0,0,True,False,2022-03-06
+EMP_069,Ignacio Flavio Baeza,53,M,27.1,3,oficinas,administrativo,11,fijo,120.0,1,False,False,2015-03-07
+EMP_070,Sr. Jacobo Báez,45,M,27.1,2,destilacion,operador_panel,4,rotativo,2.6,1,True,False,2022-03-06
+EMP_071,Paola Romero Sandoval,32,F,30.3,2,almacenamiento,operador_logistica,4,rotativo,5.4,3,True,False,2022-03-06
+EMP_072,Srita. Ana Luisa Sauceda,37,F,27.9,4,oficinas,ingeniero_proceso,5,fijo,5.1,0,False,False,2021-03-06
+EMP_073,Esteban Barrientos Yáñez,24,M,23.7,3,destilacion,operador_campo,0,fijo,7.1,1,False,False,2026-03-06
+EMP_074,Tania Gollum Páez,36,F,33.4,4,destilacion,operador_campo,13,rotativo,12.9,1,False,False,2013-03-06
+EMP_075,Rufino Gurule Véliz,45,M,31.6,3,cracking,operador_panel,7,rotativo,9.4,4,False,False,2019-03-07
+EMP_076,Sr. Wilfrido Bonilla,38,M,27.0,4,cracking,operador_panel,14,rotativo,19.5,0,True,True,2012-03-06
+EMP_077,Serafín Vallejo,39,M,30.5,3,cracking,supervisor,3,rotativo,1.2,2,True,False,2023-03-07
+EMP_078,Ing. Gregorio Flores,32,M,32.5,3,almacenamiento,operador_campo,2,fijo,44.4,2,True,False,2024-03-06
+EMP_079,Gerardo Guillermo Ortiz Ceja,32,M,30.7,1,destilacion,supervisor,2,fijo,5.5,2,False,False,2024-03-06
+EMP_080,María Cristina Graciela Beltrán Aguirre,25,F,27.9,3,mantenimiento,tecnico_instrumentista,0,rotativo,15.9,3,False,False,2026-03-06
+EMP_081,Zacarías Valladares,48,M,26.6,3,mantenimiento,tecnico_instrumentista,27,rotativo,11.6,1,False,True,1999-03-07
+EMP_082,Arturo Terrazas Gallardo,43,M,25.5,3,destilacion,operador_panel,4,rotativo,8.2,1,False,True,2022-03-06
+EMP_083,Ing. Cristobal Montes,35,M,29.5,3,oficinas,administrativo,3,fijo,2.3,2,False,False,2023-03-07
+EMP_084,Elvira Negrón Linares,39,F,25.0,1,cracking,operador_campo,15,rotativo,7.8,2,False,False,2011-03-07
+EMP_085,Mario Ricardo Madrid,31,M,23.6,4,oficinas,ingeniero_proceso,4,fijo,4.5,2,False,False,2022-03-06
+EMP_086,Sr. Rodolfo Luna,41,M,27.5,3,cracking,supervisor,2,fijo,30.1,0,True,False,2024-03-06
+EMP_087,Carla Jaime Carrillo,49,F,26.7,3,destilacion,operador_campo,5,rotativo,115.3,2,True,False,2021-03-06
+EMP_088,Rodolfo Cortés Jurado,38,M,25.4,1,mantenimiento,tecnico_electrico,0,rotativo,7.6,2,False,False,2026-03-06
+EMP_089,Tomás Fernando Montalvo Figueroa,50,M,29.0,4,cracking,operador_campo,5,rotativo,18.5,1,False,False,2021-03-06
+EMP_090,Patricio Óscar Heredia Ávalos,44,M,32.9,3,cracking,operador_panel,20,rotativo,13.0,0,True,False,2006-03-06
+EMP_091,Manuel Lebrón Armendáriz,41,M,27.0,2,mantenimiento,tecnico_mecanico,7,fijo,11.3,0,False,False,2019-03-07
+EMP_092,Joaquín Cedillo Iglesias,32,M,32.5,2,mantenimiento,tecnico_mecanico,2,fijo,11.3,2,True,False,2024-03-06
+EMP_093,Magdalena Nelly Ponce,43,F,28.9,2,destilacion,operador_campo,10,fijo,15.2,1,False,False,2016-03-06
+EMP_094,Sra. Beatriz Benítez,22,F,21.3,2,mantenimiento,supervisor,0,fijo,5.5,3,True,False,2026-03-06
+EMP_095,Ricardo Alfonso Negrón,37,M,23.0,3,mantenimiento,tecnico_electrico,5,rotativo,17.0,1,False,True,2021-03-06
+EMP_096,Dr. Marcos Cavazos,26,M,25.7,3,destilacion,operador_panel,1,rotativo,27.3,1,True,False,2025-03-06
+EMP_097,Iván Nava Arenas,30,M,32.9,1,destilacion,operador_campo,0,rotativo,7.2,1,True,False,2026-03-06
+EMP_098,Fernando Gerónimo Candelaria Moreno,45,M,25.0,3,oficinas,ingeniero_proceso,0,fijo,4.0,0,False,True,2026-03-06
+EMP_099,Ing. Rosa Correa,37,F,32.2,3,oficinas,ingeniero_proceso,9,fijo,21.8,3,False,False,2017-03-06
+EMP_100,Emiliano Ernesto Paz,22,M,27.3,2,almacenamiento,operador_logistica,0,rotativo,20.0,0,False,False,2026-03-06
+EMP_101,Ernesto Mercado Patiño,33,M,31.2,3,oficinas,coordinador,2,fijo,3.5,1,False,False,2024-03-06
+EMP_102,Gustavo Eloy Cardenas,32,M,30.1,2,destilacion,supervisor,1,fijo,13.2,0,False,False,2025-03-06
+EMP_103,Alfonso Rodrígez,31,M,29.6,3,mantenimiento,supervisor,8,rotativo,16.4,1,True,False,2018-03-06
+EMP_104,Felipe Maximiliano Montez,36,M,31.8,3,cracking,operador_campo,8,rotativo,14.9,1,False,False,2018-03-06
+EMP_105,Gabino Francisco Javier Alva Espinoza,34,M,25.4,2,almacenamiento,operador_logistica,14,fijo,4.8,2,True,False,2012-03-06
+EMP_106,Jesús Leiva,35,M,18.0,3,cracking,supervisor,15,rotativo,4.7,2,False,False,2011-03-07
+EMP_107,Homero Montoya Saucedo,41,M,21.1,3,destilacion,operador_panel,4,rotativo,14.6,1,True,True,2022-03-06
+EMP_108,René Meraz,22,M,22.7,4,cracking,supervisor,0,fijo,17.7,3,False,True,2026-03-06
+EMP_109,Claudio Ibarra Domínguez,29,M,36.2,1,mantenimiento,tecnico_instrumentista,9,rotativo,19.1,1,True,False,2017-03-06
+EMP_110,Ing. Alfonso Cardona,34,M,25.0,3,cracking,operador_campo,9,rotativo,3.0,1,True,False,2017-03-06
+EMP_111,Lic. Jorge Luis Martínez,47,M,30.8,3,oficinas,administrativo,26,fijo,11.9,2,False,False,2000-03-06
+EMP_112,Uriel Segura,22,M,25.7,2,cracking,supervisor,0,rotativo,5.1,3,True,True,2026-03-06
+EMP_113,Juan Carlos Velázquez Espinal,52,M,29.4,3,oficinas,coordinador,5,fijo,9.4,0,True,True,2021-03-06
+EMP_114,Alonso Mariano Abreu Solís,40,M,29.6,3,destilacion,supervisor,14,rotativo,3.5,2,True,False,2012-03-06
+EMP_115,Srita. Itzel Prado,38,F,26.1,3,destilacion,operador_panel,12,rotativo,23.6,0,False,True,2014-03-06
+EMP_116,Sonia Menéndez Martínez,30,F,23.5,2,almacenamiento,operador_logistica,2,rotativo,1.1,1,False,True,2024-03-06
+EMP_117,Isaac Sarabia Mares,49,M,26.4,1,oficinas,analista,29,fijo,7.6,0,False,False,1997-03-06
+EMP_118,Helena Padrón,49,F,26.5,3,almacenamiento,operador_campo,13,rotativo,26.3,2,False,False,2013-03-06
+EMP_119,Rodolfo Cristian Espinosa Peres,27,M,21.3,3,destilacion,operador_panel,2,fijo,10.5,0,True,False,2024-03-06
+EMP_120,Eric Varela,51,M,28.8,3,oficinas,analista,25,fijo,22.7,0,False,False,2001-03-06
+EMP_121,Lorenzo Roberto Abrego Maestas,39,M,24.5,1,almacenamiento,supervisor,1,rotativo,15.8,2,False,False,2025-03-06
+EMP_122,Fernando Marcos Venegas Zepeda,40,M,26.2,2,destilacion,supervisor,9,rotativo,13.5,0,False,False,2017-03-06
+EMP_123,Miguel Ángel Martín Quintanilla Gallardo,24,M,27.8,4,cracking,operador_panel,2,fijo,1.4,3,True,True,2024-03-06
+EMP_124,Lic. Enrique Bravo,42,M,29.2,3,almacenamiento,operador_campo,22,rotativo,5.7,5,False,False,2004-03-06
+EMP_125,Porfirio Wilfrido Meza Cabán,36,M,19.9,3,cracking,operador_campo,1,rotativo,7.6,2,True,True,2025-03-06
+EMP_126,Tania Gloria Garza,36,F,25.4,1,mantenimiento,tecnico_mecanico,4,rotativo,7.3,1,False,False,2022-03-06
+EMP_127,Diego Alberto Arredondo,36,M,28.4,2,mantenimiento,supervisor,0,rotativo,2.1,0,True,False,2026-03-06
+EMP_128,María José Reina Beltrán,32,F,26.5,3,cracking,operador_campo,1,rotativo,8.5,2,False,False,2025-03-06
+EMP_129,Luis Manuel Velásquez,40,M,28.0,2,mantenimiento,tecnico_mecanico,2,rotativo,3.9,0,False,False,2024-03-06
+EMP_130,Yolanda Victoria Olivo,36,F,25.5,2,cracking,supervisor,2,rotativo,7.1,1,False,False,2024-03-06
+EMP_131,Leonel Guerrero,42,M,27.2,3,destilacion,operador_panel,8,fijo,43.5,0,False,False,2018-03-06
+EMP_132,Abelardo Carlos Pizarro,39,M,26.9,3,oficinas,coordinador,14,fijo,26.6,3,False,False,2012-03-06
+EMP_133,Ernesto Rafaél Rivera,26,M,27.2,3,almacenamiento,supervisor,6,fijo,33.7,2,True,False,2020-03-06
+EMP_134,Noelia Haro Casas,44,F,27.5,4,cracking,operador_panel,4,rotativo,31.6,0,False,False,2022-03-06
+EMP_135,Daniel Rivera,32,M,26.6,4,oficinas,coordinador,12,fijo,3.3,3,True,False,2014-03-06
+EMP_136,Ing. Martín Santana,47,M,24.4,2,oficinas,ingeniero_proceso,0,fijo,10.9,1,False,False,2026-03-06
+EMP_137,Nayeli Ramírez,33,F,22.0,3,mantenimiento,supervisor,1,rotativo,4.9,3,False,False,2025-03-06
+EMP_138,Nicolás Mauricio Huerta,46,M,26.3,3,cracking,operador_campo,10,rotativo,5.4,2,True,False,2016-03-06
+EMP_139,Hernán Ramiro Rubio,26,M,24.3,4,destilacion,operador_campo,4,rotativo,12.9,3,False,False,2022-03-06
+EMP_140,Hernán Mario Bernal,27,M,26.2,3,cracking,operador_campo,2,rotativo,18.3,1,False,True,2024-03-06
+EMP_141,Elsa Estela Meza Maya,34,F,30.6,3,oficinas,analista,7,fijo,29.4,2,False,True,2019-03-07
+EMP_142,Sr. Darío Corona,31,M,24.5,1,cracking,operador_campo,1,rotativo,23.9,2,False,False,2025-03-06
+EMP_143,Judith Verónica Corral,27,F,33.8,3,oficinas,coordinador,2,fijo,5.0,1,False,False,2024-03-06
+EMP_144,Anabel Liliana Pantoja,43,F,31.9,4,cracking,operador_panel,1,rotativo,3.2,0,False,False,2025-03-06
+EMP_145,Reynaldo Miguel Ángel Pelayo Bañuelos,35,M,25.7,2,oficinas,coordinador,6,fijo,17.4,1,False,False,2020-03-06
+EMP_146,Linda Julia Viera,37,F,27.2,3,oficinas,analista,3,fijo,15.2,0,True,False,2023-03-07
+EMP_147,Olivia Olivares Romero,45,F,28.9,3,oficinas,ingeniero_proceso,6,fijo,20.4,1,False,False,2020-03-06
+EMP_148,Irma Lugo Orellana,36,F,30.0,2,cracking,supervisor,10,rotativo,13.1,1,False,False,2016-03-06
+EMP_149,René Treviño,38,M,30.5,3,cracking,operador_campo,18,rotativo,9.0,1,False,False,2008-03-06
+EMP_150,Dr. Omar Gaona,41,M,24.2,1,mantenimiento,tecnico_mecanico,1,rotativo,20.6,1,False,False,2025-03-06
+EMP_151,Mariano Omar Anaya Ordóñez,36,M,29.7,3,destilacion,supervisor,16,fijo,4.7,2,False,False,2010-03-06
+EMP_152,Lorenzo Emilio Robles Cavazos,43,M,32.7,3,destilacion,operador_campo,2,rotativo,5.2,3,False,False,2024-03-06
+EMP_153,Sr. Julio César Villarreal,35,M,24.7,2,cracking,operador_campo,7,fijo,28.7,1,False,False,2019-03-07
+EMP_154,Sr. Benito Porras,39,M,25.1,4,oficinas,analista,12,fijo,18.9,3,False,True,2014-03-06
+EMP_155,Miguel Espartaco Arteaga,29,M,31.1,3,cracking,supervisor,2,fijo,5.4,1,True,False,2024-03-06
+EMP_156,Juana Helena Galarza Rentería,48,F,21.6,3,cracking,operador_panel,22,rotativo,6.4,1,False,False,2004-03-06
+EMP_157,Jonás Juan Ledesma Pérez,23,M,24.0,2,destilacion,operador_panel,1,rotativo,2.9,3,False,False,2025-03-06
+EMP_158,Aurelio Modesto Almaraz Tirado,39,M,24.4,1,destilacion,operador_panel,3,rotativo,14.7,0,False,False,2023-03-07
+EMP_159,Jos Garrido Barrientos,35,M,27.4,3,cracking,operador_campo,1,rotativo,43.0,1,False,False,2025-03-06
+EMP_160,Aldo Gutiérrez Feliciano,31,M,25.8,3,cracking,operador_panel,4,rotativo,16.7,1,False,False,2022-03-06
+EMP_161,Zacarías Corral Griego,40,M,26.6,4,oficinas,administrativo,2,fijo,17.2,0,False,False,2024-03-06
+EMP_162,Nicolás Claudio Valle,29,M,31.8,2,cracking,operador_campo,7,rotativo,12.1,1,False,True,2019-03-07
+EMP_163,Miguel Ángel Gonzalo Negrete,41,M,27.1,4,cracking,supervisor,10,rotativo,19.1,2,False,True,2016-03-06
+EMP_164,Uriel Uriel Carrero,34,M,27.5,2,mantenimiento,tecnico_instrumentista,3,rotativo,15.4,1,False,False,2023-03-07
+EMP_165,Jacinto Carlos Véliz,30,M,29.6,2,oficinas,ingeniero_proceso,0,fijo,4.6,0,True,False,2026-03-06
+EMP_166,Jacinto Velásquez Núñez,42,M,25.0,3,mantenimiento,tecnico_electrico,14,fijo,48.3,0,False,False,2012-03-06
+EMP_167,Federico Benítez,45,M,26.9,4,cracking,operador_campo,2,rotativo,9.9,0,True,True,2024-03-06
+EMP_168,Dr. Camilo Madera,38,M,18.4,2,destilacion,operador_campo,0,rotativo,13.8,3,False,False,2026-03-06
+EMP_169,Sra. Norma Arguello,43,F,27.5,2,mantenimiento,tecnico_instrumentista,9,fijo,2.9,2,False,True,2017-03-06
+EMP_170,Nadia Lourdes Nevárez Barrientos,33,F,32.6,3,destilacion,supervisor,2,rotativo,18.1,1,False,False,2024-03-06
+EMP_171,Dra. Adriana Peres,38,F,27.9,2,cracking,supervisor,2,rotativo,11.9,0,False,False,2024-03-06
+EMP_172,Carlos Prieto,46,M,27.4,4,mantenimiento,tecnico_instrumentista,26,rotativo,14.9,0,False,False,2000-03-06
+EMP_173,Maximiliano Elias Puga del Valle,35,M,37.8,3,mantenimiento,tecnico_electrico,8,fijo,9.1,1,False,True,2018-03-06
+EMP_174,Dra. Rocío Tijerina,39,F,29.4,2,almacenamiento,operador_logistica,1,rotativo,8.0,0,False,False,2025-03-06
+EMP_175,María Elena Pulido,43,F,29.4,1,destilacion,operador_panel,6,rotativo,6.2,1,True,False,2020-03-06
+EMP_176,Ing. Javier Guillen,41,M,29.0,1,mantenimiento,supervisor,3,rotativo,2.7,3,False,False,2023-03-07
+EMP_177,Homero Raya Guerrero,43,M,23.3,2,cracking,operador_panel,1,rotativo,12.3,1,False,False,2025-03-06
+EMP_178,Rufino Ojeda,42,M,31.3,3,oficinas,ingeniero_proceso,12,fijo,19.9,1,False,False,2014-03-06
+EMP_179,Aldo Oswaldo Meléndez Echeverría,31,M,27.1,3,almacenamiento,operador_logistica,9,rotativo,6.6,3,False,False,2017-03-06
+EMP_180,Dolores Mota,40,F,28.9,2,cracking,supervisor,19,rotativo,5.3,2,True,False,2007-03-07
+EMP_181,Jorge Homero Ybarra Leal,26,M,30.8,2,destilacion,operador_campo,0,rotativo,31.0,3,False,False,2026-03-06
+EMP_182,Sr. Rafaél Espino,39,M,31.3,3,oficinas,administrativo,1,fijo,13.6,0,False,False,2025-03-06
+EMP_183,Gerardo Palomo Sáenz,36,M,19.6,4,destilacion,supervisor,9,rotativo,13.5,1,True,False,2017-03-06
+EMP_184,Dr. Nicolás Salas,47,M,27.1,3,destilacion,operador_campo,13,rotativo,21.3,1,True,True,2013-03-06
+EMP_185,Adán Cabán,47,M,25.3,3,destilacion,supervisor,6,rotativo,9.5,0,False,False,2020-03-06
+EMP_186,Francisco Lorenzo Guerrero Malave,40,M,25.0,2,almacenamiento,supervisor,8,rotativo,23.6,0,False,False,2018-03-06
+EMP_187,Ing. Nicolás Uribe,40,M,25.8,2,cracking,operador_panel,3,rotativo,30.3,0,False,True,2023-03-07
+EMP_188,Dra. Lorena Urbina,49,F,27.7,3,mantenimiento,tecnico_instrumentista,13,rotativo,11.9,0,False,False,2013-03-06
+EMP_189,José Mauro Juárez Malave,46,M,30.4,3,mantenimiento,supervisor,0,rotativo,5.6,0,True,True,2026-03-06
+EMP_190,Gabriel Clemente Espinoza Mata,43,M,29.5,3,oficinas,ingeniero_proceso,12,fijo,2.1,1,False,False,2014-03-06
+EMP_191,René Escalante Espinosa,30,M,25.6,3,cracking,operador_panel,1,rotativo,6.0,1,True,False,2025-03-06
+EMP_192,Óliver Hernán Villalpando,35,M,18.0,1,mantenimiento,tecnico_mecanico,6,fijo,9.8,2,False,False,2020-03-06
+EMP_193,Ing. Bruno Esquibel,43,M,31.5,3,oficinas,ingeniero_proceso,12,fijo,15.6,1,True,False,2014-03-06
+EMP_194,Gabino José Eduardo Duarte Madrid,42,M,25.2,3,almacenamiento,operador_logistica,22,rotativo,19.3,1,True,False,2004-03-06
+EMP_195,Wendolin Tejeda Castro,33,F,23.4,3,destilacion,operador_campo,8,rotativo,6.7,1,False,False,2018-03-06
+EMP_196,Alonso Amador Uribe Loya,50,M,25.3,1,destilacion,supervisor,5,fijo,12.0,0,True,False,2021-03-06
+EMP_197,Sandra Marisela Candelaria,38,F,26.0,3,destilacion,supervisor,5,rotativo,27.0,3,True,False,2021-03-06
+EMP_198,Salvador Linares Rodarte,34,M,25.2,4,mantenimiento,tecnico_instrumentista,2,rotativo,18.8,3,False,True,2024-03-06
+EMP_199,Mario Molina,27,M,21.7,1,destilacion,supervisor,1,rotativo,35.1,1,False,True,2025-03-06
+EMP_200,Ana Esmeralda Romo,42,F,23.4,3,almacenamiento,operador_campo,10,rotativo,9.7,3,True,False,2016-03-06
