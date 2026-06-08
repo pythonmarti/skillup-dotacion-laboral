@@ -41,13 +41,69 @@ uv sync
 
 ## Guía de Ejecución
 
-Puedes ejecutar el pipeline completo de punta a punta con un solo comando:
+### Selector de dominio
+
+El proyecto ahora soporta seleccion de dominio por CLI:
 
 ```bash
-uv run python scripts/04_full_pipeline.py
+uv run python scripts/run_pipeline.py --domain industrial --stage full
+uv run python scripts/run_pipeline.py --domain restaurant --stage full
 ```
 
-Este script orquesta los siguientes pasos de forma secuencial:
+Ejemplo recomendado para el flujo restaurant casual dining:
+
+```bash
+uv run python scripts/run_pipeline.py --domain restaurant --stage full --employees 72 --days 180 --seed 42
+```
+
+Comandos utiles por stage:
+
+```bash
+uv run python scripts/run_pipeline.py --domain industrial --stage generate
+uv run python scripts/run_pipeline.py --domain industrial --stage etl
+uv run python scripts/run_pipeline.py --domain industrial --stage train
+uv run python scripts/run_pipeline.py --domain industrial --stage infer
+```
+
+Tambien puedes listar dominios disponibles:
+
+```bash
+uv run python scripts/run_pipeline.py --list-domains
+```
+
+Stages disponibles:
+
+- `generate`
+- `etl`
+- `train`
+- `infer`
+- `full`
+
+Atajo para pipeline completo:
+
+```bash
+uv run python scripts/run_full_pipeline.py --domain industrial
+```
+
+Compatibilidad con el comando historico:
+
+```bash
+uv run python scripts/04_full_pipeline.py --domain industrial
+```
+
+Estado actual de dominios:
+
+- `industrial`: implementado y operativo
+- `restaurant`: implementado y operativo con calendario Chile, ETL, entrenamiento, inferencia y dashboard ejecutivo
+
+El flujo industrial de punta a punta puede ejecutarse con cualquiera de estos comandos:
+
+```bash
+uv run python scripts/run_full_pipeline.py --domain industrial
+uv run python scripts/04_full_pipeline.py --domain industrial
+```
+
+Este flujo orquesta los siguientes pasos de forma secuencial:
 1. **Generación de Datos (`01_generate_data.py`):** Crea perfiles demográficos, registros de turnos de trabajo, series temporales biométricas (wearables) y eventos de ausentismo médico/casual en `data/raw/`.
 2. **ETL y Feature Engineering (`02_run_etl.py`):** Limpia biometría, imputa datos vacíos con KNN, normaliza (Z-Scores individuales), crea ventanas móviles (fatiga de 14 días), agrega todo a nivel de Área-Turno-Día y guarda la matriz resultante en `ml_features` dentro de la base de datos SQLite `data/skillup.db`.
 3. **Entrenamiento y Evaluación (`03_train_model.py`):** Aplica validación temporal (split ordenado por fecha), entrena los 3 modelos descritos, optimiza los umbrales de decisión basados en el conjunto de entrenamiento, evalúa en test y genera gráficos de reporte en `data/processed/`.
@@ -169,6 +225,19 @@ El entrenamiento guarda ademas:
 - `data/processed/deficit_classifier_calibrated.pkl`
 - `data/processed/model_artifacts.json`
 
+Tambien puedes lanzar inferencia desde el runner multi-dominio:
+
+```bash
+uv run python scripts/run_pipeline.py --domain industrial --stage infer
+uv run python scripts/run_pipeline.py --domain restaurant --stage infer
+```
+
+Para generar solo el dashboard ejecutivo del dominio restaurant:
+
+```bash
+uv run python scripts/run_pipeline.py --domain restaurant --stage report
+```
+
 Nota: el flujo usa `pdftotext` para PDFs nativos. Si el PDF viene escaneado y no contiene texto util, el script intenta usar OCR solo si `tesseract` esta instalado.
 
 ---
@@ -210,11 +279,19 @@ skillup/
 │   ├── processed/               # Gráficas de métricas y CSV de comparación
 │   └── skillup.db               # Base de datos SQLite
 ├── scripts/
+│   ├── run_pipeline.py          # Runner multi-dominio por stage
+│   ├── run_full_pipeline.py     # Atajo multi-dominio para pipeline completo
 │   ├── 01_generate_data.py      # Orquestador de generación de datos
 │   ├── 02_run_etl.py            # Orquestador ETL
 │   ├── 03_train_model.py        # Orquestador de entrenamiento de modelos
-│   └── 04_full_pipeline.py      # Pipeline completo de punta a punta
+│   ├── 04_full_pipeline.py      # Compat wrapper del pipeline completo
+│   ├── 05_generate_medical_forms.py
+│   ├── 06_extract_medical_forms.py
+│   ├── 07_forms_to_etl.py
+│   ├── 08_forms_to_model_metrics.py
+│   └── 09_run_inference.py
 ├── src/
+│   ├── domains/                 # Registro y selección de dominios
 │   ├── generators/              # Lógica de generación sintética
 │   │   ├── employees.py         # Demográficos
 │   │   ├── work_records.py      # Calendario y turnos

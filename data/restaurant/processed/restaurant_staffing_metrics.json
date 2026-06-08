@@ -1,0 +1,70 @@
+{
+  "metrics": {
+    "regression": {
+      "MAE": 0.44623611111111106,
+      "RMSE": 0.6432922050756648,
+      "R2": 0.9855485964556787
+    },
+    "classification_xgboost": {
+      "AUC-ROC": 0.9293308926624085,
+      "PR-AUC": 0.9602104423694127,
+      "Brier Score": 0.07948528230190277,
+      "Accuracy": 0.9375,
+      "Precision": 0.9410681399631676,
+      "Recall": 0.9751908396946565,
+      "F1-Score": 0.9578256794751641
+    },
+    "classification_calibrated": {
+      "AUC-ROC": 0.9290631328867425,
+      "PR-AUC": 0.9612131969441965,
+      "Brier Score": 0.09768360411938004,
+      "Accuracy": 0.9319444444444445,
+      "Precision": 0.9341864716636198,
+      "Recall": 0.9751908396946565,
+      "F1-Score": 0.954248366013072
+    },
+    "classification_best": {
+      "AUC-ROC": 0.9290631328867425,
+      "PR-AUC": 0.9612131969441965,
+      "Brier Score": 0.09768360411938004,
+      "Accuracy": 0.9319444444444445,
+      "Precision": 0.9341864716636198,
+      "Recall": 0.9751908396946565,
+      "F1-Score": 0.954248366013072
+    },
+    "role_models": {
+      "garzon": {
+        "AUC-ROC": 0.9628180039138944,
+        "PR-AUC": 0.8794738306053099,
+        "Brier Score": 0.0728357583284378,
+        "Accuracy": 0.9402777777777778,
+        "Precision": 0.8705035971223022,
+        "Recall": 0.8287671232876712,
+        "F1-Score": 0.8491228070175438
+      },
+      "cocinero_linea": {
+        "AUC-ROC": 0.9619642930097643,
+        "PR-AUC": 0.9047602603118379,
+        "Brier Score": 0.0553237646818161,
+        "Accuracy": 0.9458333333333333,
+        "Precision": 0.8333333333333334,
+        "Recall": 0.8536585365853658,
+        "F1-Score": 0.8433734939759037
+      },
+      "jefe_turno": {
+        "AUC-ROC": 0.9254877131890309,
+        "PR-AUC": 0.8532433422343222,
+        "Brier Score": 0.020395755767822266,
+        "Accuracy": 0.9902777777777778,
+        "Precision": 1.0,
+        "Recall": 0.8108108108108109,
+        "F1-Score": 0.8955223880597015
+      }
+    }
+  },
+  "best_classifier": {
+    "name": "restaurant_calibrated",
+    "path": "restaurant_deficit_classifier_calibrated.pkl",
+    "threshold": 0.5846819082895914
+  }
+}
