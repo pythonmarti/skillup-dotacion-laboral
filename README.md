@@ -1,9 +1,10 @@
 # SkillUp - Predicción de Dotación y Riesgo de Déficit
 
-SkillUp es una plataforma de simulación, ETL, modelado, inferencia y visualización para problemas de dotación laboral. Actualmente soporta dos dominios operativos:
+SkillUp es una plataforma de simulación, ETL, modelado, inferencia y visualización para problemas de dotación laboral. Actualmente soporta tres dominios operativos:
 
 - `industrial`: cobertura por `plant_area + shift + date`
 - `restaurant`: cobertura por `date + service_period` para un restaurante casual dining con calendario de Chile
+- `clinic`: cobertura por `date + shift + clinical_unit` para una clinica ambulatoria con agenda, procedimientos y roles criticos
 
 Además incluye un flujo documental de fichas médicas en PDF, extracción a CSV estructurado y una UI interactiva para operar pipelines y revisar dashboards.
 
@@ -36,6 +37,7 @@ make down
 make shell
 make pipeline DOMAIN=industrial STAGE=full
 make pipeline DOMAIN=restaurant STAGE=full ARGS="--employees 72 --days 180 --seed 42"
+make pipeline DOMAIN=clinic STAGE=full ARGS="--employees 96 --days 180 --seed 42"
 ```
 
 ## Desarrollo Local Sin Docker
@@ -77,6 +79,14 @@ Si `make up` falla, revisa lo siguiente:
 - foco: horas peak, fines de semana, festivos chilenos, déficit general y por rol crítico
 - salidas: predicciones operativas, recomendaciones de staffing y dashboard ejecutivo
 
+### Clinic
+
+- unidad de decisión: `Fecha + Turno + Unidad clínica`
+- turnos: `morning`, `evening`
+- unidades: `consulta_general`, `especialidades`, `procedimientos_ambulatorios`, `imagenologia`, `toma_muestras`
+- foco: agenda ambulatoria, volumen de pacientes, procedimientos, boxes activos, alertas respiratorias y déficit por roles críticos
+- salidas: predicciones operativas, recomendaciones de contingencia y dashboard ejecutivo
+
 ---
 
 ## Ejecución por Dominio
@@ -86,7 +96,7 @@ El proyecto se opera con un selector de dominio y stages estandarizados.
 Comando base en local:
 
 ```bash
-uv run python scripts/run_pipeline.py --domain <industrial|restaurant> --stage <generate|etl|train|infer|report|full>
+uv run python scripts/run_pipeline.py --domain <industrial|restaurant|clinic> --stage <generate|etl|train|infer|report|full>
 ```
 
 Listar dominios en local:
@@ -139,6 +149,20 @@ En local:
 uv run python scripts/run_pipeline.py --domain restaurant --stage full --employees 72 --days 180 --seed 42
 ```
 
+### Pipeline completo clinic
+
+Con Docker:
+
+```bash
+make pipeline DOMAIN=clinic STAGE=full ARGS="--employees 96 --days 180 --seed 42"
+```
+
+En local:
+
+```bash
+uv run python scripts/run_pipeline.py --domain clinic --stage full --employees 96 --days 180 --seed 42
+```
+
 ### Ejemplos por stage
 
 ```bash
@@ -147,6 +171,7 @@ uv run python scripts/run_pipeline.py --domain industrial --stage etl
 uv run python scripts/run_pipeline.py --domain industrial --stage train
 uv run python scripts/run_pipeline.py --domain industrial --stage infer
 uv run python scripts/run_pipeline.py --domain restaurant --stage report
+uv run python scripts/run_pipeline.py --domain clinic --stage report
 ```
 
 ---
@@ -184,6 +209,24 @@ Salida principal en:
 - `data/restaurant/processed/`
 - `data/restaurant/restaurant_skillup.db`
 
+### Clinic
+
+`full` ejecuta:
+
+1. generación de datos en `data/clinic/raw/`
+2. ETL y creación de `clinic_ml_features`
+3. entrenamiento de modelos generales y por rol crítico
+4. inferencia operativa
+5. dashboard ejecutivo en `data/clinic/processed/clinic_executive_dashboard.png`
+
+Caso de uso modelado: clínica ambulatoria con agenda, especialidades, procedimientos menores, imagenología y toma de muestras.
+
+Salida principal en:
+
+- `data/clinic/raw/`
+- `data/clinic/processed/`
+- `data/clinic/clinic_skillup.db`
+
 ---
 
 ## UI Interactiva
@@ -204,7 +247,7 @@ uv run python scripts/run_dashboard_ui.py
 
 La UI permite:
 
-- seleccionar `industrial` o `restaurant`
+- seleccionar `industrial`, `restaurant` o `clinic`
 - ejecutar pipelines por dominio y stage
 - revisar logs de ejecución
 - visualizar KPIs y gráficos interactivos

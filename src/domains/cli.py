@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def build_parser(default_stage: str | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Ejecuta pipelines por dominio de negocio")
-    parser.add_argument("--domain", default="industrial", help="Dominio a ejecutar: industrial o restaurant")
+    parser.add_argument("--domain", default="industrial", help="Dominio a ejecutar: industrial, restaurant o clinic")
     parser.add_argument(
         "--stage",
         default=default_stage or "full",

@@ -12,6 +12,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from config.clinic_settings import CLINIC_CRITICAL_ROLE_TARGETS, CLINIC_MODEL_CONFIG, CLINIC_PROCESSED_DIR, CLINIC_RAW_DIR
 from config.restaurant_settings import CRITICAL_ROLE_TARGETS, RESTAURANT_PROCESSED_DIR, RESTAURANT_RAW_DIR
 from config.settings import PROCESSED_DIR, RAW_DIR
 
@@ -32,6 +33,16 @@ class DomainArtifacts:
 
 
 def get_domain_artifacts(domain: str) -> DomainArtifacts:
+    if domain == "clinic":
+        return DomainArtifacts(
+            raw_dir=CLINIC_RAW_DIR,
+            processed_dir=CLINIC_PROCESSED_DIR,
+            metrics_json=CLINIC_PROCESSED_DIR / "clinic_staffing_metrics.json",
+            predictions_csv=CLINIC_PROCESSED_DIR / "clinic_staffing_predictions.csv",
+            dashboard_images=[CLINIC_PROCESSED_DIR / "clinic_executive_dashboard.png"],
+            summary_title="Clinica Ambulatoria",
+            summary_subtitle="Riesgo de deficit por unidad ambulatoria y turno con foco en agenda, procedimientos, boxes activos y roles criticos.",
+        )
     if domain == "restaurant":
         return DomainArtifacts(
             raw_dir=RESTAURANT_RAW_DIR,
@@ -59,6 +70,34 @@ def get_domain_artifacts(domain: str) -> DomainArtifacts:
         summary_title="Industrial Staffing",
         summary_subtitle="Cobertura esperada por área y turno con foco en déficit operacional y disponibilidad real.",
     )
+
+
+def _critical_roles(domain: str) -> list[str]:
+    if domain == "restaurant":
+        return CRITICAL_ROLE_TARGETS
+    if domain == "clinic":
+        return CLINIC_CRITICAL_ROLE_TARGETS
+    return []
+
+
+def _uses_total_headcount(domain: str) -> bool:
+    return domain in {"restaurant", "clinic"}
+
+
+def _required_headcount_col(domain: str) -> str:
+    return "required_headcount_total" if _uses_total_headcount(domain) else "required_headcount"
+
+
+def _actual_headcount_col(domain: str) -> str:
+    return "actual_headcount_total" if _uses_total_headcount(domain) else "actual_headcount"
+
+
+def _predicted_headcount_col(domain: str) -> str:
+    return "predicted_headcount_total" if _uses_total_headcount(domain) else "predicted_headcount"
+
+
+def _observed_deficit_col(domain: str) -> str:
+    return "has_deficit_total" if _uses_total_headcount(domain) else "has_deficit"
 
 
 def load_metrics_payload(metrics_path: Path) -> dict:
@@ -191,6 +230,15 @@ def build_filters(domain: str, df: pd.DataFrame) -> pd.DataFrame:
                 options = sorted(filtered["service_period"].dropna().unique().tolist())
                 selected = st.multiselect("Franjas", options, default=options)
                 filtered = filtered[filtered["service_period"].isin(selected)]
+        elif domain == "clinic":
+            if "clinical_unit" in filtered.columns:
+                options = sorted(filtered["clinical_unit"].dropna().unique().tolist())
+                selected = st.multiselect("Unidades clínicas", options, default=options)
+                filtered = filtered[filtered["clinical_unit"].isin(selected)]
+            if "shift" in filtered.columns:
+                options = sorted(filtered["shift"].dropna().unique().tolist())
+                selected = st.multiselect("Turnos", options, default=options)
+                filtered = filtered[filtered["shift"].isin(selected)]
         else:
             if "plant_area" in filtered.columns:
                 options = sorted(filtered["plant_area"].dropna().unique().tolist())
@@ -241,6 +289,21 @@ def render_kpis(domain: str, df: pd.DataFrame, metrics_payload: dict) -> None:
             ("Brecha media esperada", f"{gap:.2f}"),
             ("Rol más expuesto", top_role),
         ]
+    elif domain == "clinic":
+        risk = float(df["predicted_deficit_probability"].mean())
+        high_risk = int((df["predicted_deficit_probability"] >= CLINIC_MODEL_CONFIG["high_risk_threshold"]).sum())
+        gap = float((df["required_headcount_total"] - df["predicted_headcount_total"]).clip(lower=0).mean())
+        top_unit = df.groupby("clinical_unit")["predicted_deficit_probability"].mean().sort_values(ascending=False).index[0]
+        top_role = max(
+            CLINIC_CRITICAL_ROLE_TARGETS,
+            key=lambda role: df.get(f"predicted_role_deficit_prob_{role}", pd.Series([0])).mean(),
+        )
+        cards = [
+            ("Riesgo medio", f"{risk:.1%}"),
+            ("Segmentos alto riesgo", f"{high_risk}"),
+            ("Brecha media esperada", f"{gap:.2f}"),
+            ("Unidad / rol crítico", f"{top_unit} / {top_role}"),
+        ]
     else:
         risk = float(df["predicted_deficit_probability"].mean())
         high_risk = int((df["predicted_deficit_probability"] >= 0.70).sum())
@@ -289,7 +352,7 @@ def render_risk_heatmap(domain: str, df: pd.DataFrame) -> None:
         return
     heatmap_df = _weekday_heatmap_base(df)
     x_col = "service_period" if domain == "restaurant" else "shift"
-    observed_col = "has_deficit_total" if domain == "restaurant" else "has_deficit"
+    observed_col = _observed_deficit_col(domain)
     use_observed = observed_col in heatmap_df.columns
     value_col = observed_col if use_observed else "predicted_deficit_probability"
     title = "Mapa de déficit observado por día y segmento" if use_observed else "Mapa de riesgo por día y segmento"
@@ -315,9 +378,9 @@ def render_trend_chart(df: pd.DataFrame, domain: str) -> None:
         return
     trend = df.groupby("date", as_index=False).agg(
         predicted_deficit_probability=("predicted_deficit_probability", "mean"),
-        predicted_headcount=("predicted_headcount_total", "mean") if domain == "restaurant" else ("predicted_headcount", "mean"),
-        actual_headcount=("actual_headcount_total", "mean") if domain == "restaurant" else ("actual_headcount", "mean"),
-        required_headcount=("required_headcount_total", "mean") if domain == "restaurant" else ("required_headcount", "mean"),
+        predicted_headcount=(_predicted_headcount_col(domain), "mean"),
+        actual_headcount=(_actual_headcount_col(domain), "mean"),
+        required_headcount=(_required_headcount_col(domain), "mean"),
     )
 
     line = alt.Chart(trend).mark_line(point=True, strokeWidth=2.5).encode(
@@ -355,9 +418,9 @@ def render_capacity_chart(df: pd.DataFrame, domain: str) -> None:
         return
 
     grouped = df.groupby("date", as_index=False).agg(
-        required=("required_headcount_total", "mean") if domain == "restaurant" else ("required_headcount", "mean"),
-        actual=("actual_headcount_total", "mean") if domain == "restaurant" else ("actual_headcount", "mean"),
-        predicted=("predicted_headcount_total", "mean") if domain == "restaurant" else ("predicted_headcount", "mean"),
+        required=(_required_headcount_col(domain), "mean"),
+        actual=(_actual_headcount_col(domain), "mean"),
+        predicted=(_predicted_headcount_col(domain), "mean"),
     )
     tidy = grouped.melt("date", var_name="series", value_name="headcount")
     chart = (
@@ -387,6 +450,10 @@ def render_segment_chart(domain: str, df: pd.DataFrame) -> None:
         chart_df = pd.DataFrame(role_rows)
         title = "Riesgo por rol crítico"
         x_title = "Rol"
+    elif domain == "clinic":
+        chart_df = df.groupby("clinical_unit", as_index=False)["predicted_deficit_probability"].mean().rename(columns={"clinical_unit": "segment", "predicted_deficit_probability": "risk"})
+        title = "Riesgo medio por unidad clínica"
+        x_title = "Unidad clínica"
     else:
         chart_df = df.groupby("plant_area", as_index=False)["predicted_deficit_probability"].mean().rename(columns={"plant_area": "segment", "predicted_deficit_probability": "risk"})
         title = "Riesgo medio por área"
@@ -496,6 +563,15 @@ def render_executive_narrative(domain: str, df: pd.DataFrame) -> None:
             f"El rol con mayor riesgo relativo es `{top_role}`. "
             "La recomendación operativa es anticipar reemplazos o movimiento de personal cross-trained en los bloques con mayor demanda."
         )
+    elif domain == "clinic":
+        top_unit = df.groupby(["clinical_unit", "shift"])["predicted_deficit_probability"].mean().sort_values(ascending=False)
+        unit_name, shift_name = top_unit.index[0]
+        top_role = max(CLINIC_CRITICAL_ROLE_TARGETS, key=lambda role: df.get(f"predicted_role_deficit_prob_{role}", pd.Series([0])).mean())
+        message = (
+            f"El segmento más crítico es `{unit_name} / {shift_name}`. "
+            f"El rol con mayor exposición relativa es `{top_role}`. "
+            "Conviene activar staff flotante, revisar sobreagenda y anticipar reemplazos en ventanas de mayor carga asistencial o procedimientos."
+        )
     else:
         grouped = df.groupby(["plant_area", "shift"])["predicted_deficit_probability"].mean().sort_values(ascending=False)
         top_area, top_shift = grouped.index[0]
@@ -573,9 +649,9 @@ def main() -> None:
 
     with st.sidebar:
         st.header("Control")
-        domain = st.selectbox("Dominio", ["industrial", "restaurant"], index=0)
+        domain = st.selectbox("Dominio", ["industrial", "restaurant", "clinic"], index=0)
         stage = st.selectbox("Stage", ["generate", "etl", "train", "infer", "report", "full"], index=5)
-        default_employees = 72 if domain == "restaurant" else 200
+        default_employees = 72 if domain == "restaurant" else (96 if domain == "clinic" else 200)
         employees = st.number_input("Employees", min_value=1, value=default_employees, step=1)
         days = st.number_input("Days", min_value=1, value=180, step=1)
         seed = st.number_input("Seed", min_value=0, value=42, step=1)
