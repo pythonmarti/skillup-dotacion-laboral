@@ -16,7 +16,22 @@ Además existen dos capacidades transversales:
 
 ## 2. Punto de entrada común
 
-Comando principal:
+Inicio recomendado del repositorio:
+
+```bash
+make up
+```
+
+Esto expone la UI en `http://localhost:8501`.
+
+Ejecución de pipelines desde Docker:
+
+```bash
+make pipeline DOMAIN=industrial STAGE=full
+make pipeline DOMAIN=restaurant STAGE=full ARGS="--employees 72 --days 180 --seed 42"
+```
+
+Comando principal en local:
 
 ```bash
 uv run python scripts/run_pipeline.py --domain <industrial|restaurant> --stage <generate|etl|train|infer|report|full>
@@ -253,7 +268,13 @@ Archivos:
 - `src/ui/dashboard_app.py`
 - `scripts/run_dashboard_ui.py`
 
-Comando:
+Comando recomendado:
+
+```bash
+make up
+```
+
+Comando local:
 
 ```bash
 uv run python scripts/run_dashboard_ui.py
@@ -286,17 +307,41 @@ si dotación predicha < dotación requerida
 
 ### Industrial completo
 
+Docker:
+
+```bash
+make pipeline DOMAIN=industrial STAGE=full
+```
+
+Local:
+
 ```bash
 uv run python scripts/run_pipeline.py --domain industrial --stage full
 ```
 
 ### Restaurant completo
 
+Docker:
+
+```bash
+make pipeline DOMAIN=restaurant STAGE=full ARGS="--employees 72 --days 180 --seed 42"
+```
+
+Local:
+
 ```bash
 uv run python scripts/run_pipeline.py --domain restaurant --stage full --employees 72 --days 180 --seed 42
 ```
 
 ### Dashboard restaurant
+
+Docker:
+
+```bash
+make pipeline DOMAIN=restaurant STAGE=report
+```
+
+Local:
 
 ```bash
 uv run python scripts/run_pipeline.py --domain restaurant --stage report
@@ -306,6 +351,12 @@ uv run python scripts/run_pipeline.py --domain restaurant --stage report
 
 ```bash
 uv run python scripts/run_dashboard_ui.py
+```
+
+### UI con Docker
+
+```bash
+make up
 ```
 
 ## 11. Estado actual del proyecto

@@ -9,7 +9,36 @@ Además incluye un flujo documental de fichas médicas en PDF, extracción a CSV
 
 ---
 
-## Requisitos
+## Inicio Rápido
+
+Forma recomendada para iniciar el proyecto:
+
+- Docker
+- Docker Compose
+- `make`
+
+Arranque:
+
+```bash
+make up
+```
+
+La UI quedará disponible en `http://localhost:8501`.
+
+Comandos útiles:
+
+```bash
+make up-d
+make logs
+make down
+make shell
+make pipeline DOMAIN=industrial STAGE=full
+make pipeline DOMAIN=restaurant STAGE=full ARGS="--employees 72 --days 180 --seed 42"
+```
+
+## Desarrollo Local Sin Docker
+
+Requisitos:
 
 - Python `3.13+`
 - `uv`
@@ -43,13 +72,13 @@ uv sync
 
 El proyecto se opera con un selector de dominio y stages estandarizados.
 
-Comando base:
+Comando base en local:
 
 ```bash
 uv run python scripts/run_pipeline.py --domain <industrial|restaurant> --stage <generate|etl|train|infer|report|full>
 ```
 
-Listar dominios:
+Listar dominios en local:
 
 ```bash
 uv run python scripts/run_pipeline.py --list-domains
@@ -66,6 +95,14 @@ Stages disponibles:
 
 ### Pipeline completo industrial
 
+Con Docker:
+
+```bash
+make pipeline DOMAIN=industrial STAGE=full
+```
+
+En local:
+
 ```bash
 uv run python scripts/run_pipeline.py --domain industrial --stage full
 ```
@@ -78,6 +115,14 @@ uv run python scripts/04_full_pipeline.py --domain industrial
 ```
 
 ### Pipeline completo restaurant
+
+Con Docker:
+
+```bash
+make pipeline DOMAIN=restaurant STAGE=full ARGS="--employees 72 --days 180 --seed 42"
+```
+
+En local:
 
 ```bash
 uv run python scripts/run_pipeline.py --domain restaurant --stage full --employees 72 --days 180 --seed 42
@@ -134,7 +179,13 @@ Salida principal en:
 
 La aplicación incluye una UI con Streamlit para operar pipelines y visualizar dashboards interactivos.
 
-Lanzamiento:
+Lanzamiento recomendado:
+
+```bash
+make up
+```
+
+Lanzamiento local:
 
 ```bash
 uv run python scripts/run_dashboard_ui.py
