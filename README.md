@@ -23,6 +23,8 @@ Arranque:
 make up
 ```
 
+Ese comando sirve tambien como inicializacion de primera vez: construye la imagen y levanta la UI.
+
 La UI quedará disponible en `http://localhost:8501`.
 
 Comandos útiles:
@@ -48,6 +50,15 @@ Instalación:
 ```bash
 uv sync
 ```
+
+## Troubleshooting Docker
+
+Si `make up` falla, revisa lo siguiente:
+
+- Docker Desktop o el daemon de Docker debe estar levantado.
+- el puerto `8501` debe estar libre.
+- si cambiaste dependencias o quieres reconstruir desde cero, usa `make build` o `make restart`.
+- para inspeccionar el contenedor, usa `make logs` y `make shell`.
 
 ---
 
