@@ -46,7 +46,7 @@ def run_infer(args: object) -> None:
     logger.info("[clinic] Ejecutando inferencia")
     output_csv = Path(getattr(args, "output_csv", None) or (CLINIC_PROCESSED_DIR / "clinic_staffing_predictions.csv"))
     output_metrics = Path(getattr(args, "output_metrics", None) or (CLINIC_PROCESSED_DIR / "clinic_staffing_metrics.json"))
-    predictions, metrics, metadata = run_clinic_inference()
+    predictions, metrics, metadata = run_clinic_inference(create_shap_outputs=True)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
     output_metrics.parent.mkdir(parents=True, exist_ok=True)
     predictions.to_csv(output_csv, index=False)

@@ -8,6 +8,7 @@ import joblib
 import pandas as pd
 
 from config.restaurant_settings import CRITICAL_ROLE_TARGETS, RESTAURANT_DB_PATH, RESTAURANT_MODEL_CONFIG, RESTAURANT_PROCESSED_DIR
+from src.models.shap_analysis import generate_shap_artifacts
 from src.models.staffing_models import evaluate_classification, evaluate_regression
 from src.utils.database import query_to_dataframe
 
@@ -69,7 +70,7 @@ def _build_recommendation(row: pd.Series) -> str:
     return "Cobertura estable; mantener monitoreo operativo"
 
 
-def run_restaurant_inference():
+def run_restaurant_inference(create_shap_outputs: bool = False):
     artifacts = _load_artifacts()
     metadata = artifacts["metadata"]
     base_df, X = _prepare_matrix(metadata["feature_names"])
@@ -103,6 +104,19 @@ def run_restaurant_inference():
             role_metrics[role] = evaluate_classification(base_df[f"has_deficit_role_{role}"].astype(int), probs, threshold=threshold)
 
     scored["recommended_action"] = scored.apply(_build_recommendation, axis=1)
+
+    if create_shap_outputs:
+        generate_shap_artifacts(
+            domain="restaurant",
+            prefix="restaurant",
+            output_dir=RESTAURANT_PROCESSED_DIR,
+            X=X,
+            context_df=scored,
+            risk_model=artifacts["xgboost"],
+            headcount_model=artifacts["regressor"],
+            risk_priority_scores=scored["predicted_deficit_probability"],
+            segment_cols=["service_period"],
+        )
 
     metrics = {
         "regression": evaluate_regression(base_df["actual_headcount_total"], pred_headcount),

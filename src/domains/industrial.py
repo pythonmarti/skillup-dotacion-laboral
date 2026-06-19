@@ -58,7 +58,7 @@ def run_infer(args: object) -> None:
     output_csv = Path(output_csv_arg) if output_csv_arg else PROCESSED_DIR / "staffing_inference_predictions.csv"
     output_metrics = Path(output_metrics_arg) if output_metrics_arg else PROCESSED_DIR / "staffing_inference_metrics.json"
 
-    scored_df, metrics, metadata = run_inference()
+    scored_df, metrics, metadata = run_inference(create_shap_outputs=True)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
     output_metrics.parent.mkdir(parents=True, exist_ok=True)
     scored_df.to_csv(output_csv, index=False)

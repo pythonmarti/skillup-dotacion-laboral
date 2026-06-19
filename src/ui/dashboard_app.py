@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import altair as alt
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -27,9 +28,16 @@ class DomainArtifacts:
     processed_dir: Path
     metrics_json: Path
     predictions_csv: Path
+    risk_shap_global_csv: Path
+    headcount_shap_global_csv: Path
+    risk_shap_segment_csv: Path
+    risk_shap_effects_csv: Path
+    risk_shap_explanations_csv: Path
+    risk_shap_summary_json: Path
     dashboard_images: list[Path]
     summary_title: str
     summary_subtitle: str
+    segment_label: str
 
 
 def get_domain_artifacts(domain: str) -> DomainArtifacts:
@@ -39,9 +47,16 @@ def get_domain_artifacts(domain: str) -> DomainArtifacts:
             processed_dir=CLINIC_PROCESSED_DIR,
             metrics_json=CLINIC_PROCESSED_DIR / "clinic_staffing_metrics.json",
             predictions_csv=CLINIC_PROCESSED_DIR / "clinic_staffing_predictions.csv",
+            risk_shap_global_csv=CLINIC_PROCESSED_DIR / "clinic_risk_shap_global.csv",
+            headcount_shap_global_csv=CLINIC_PROCESSED_DIR / "clinic_headcount_shap_global.csv",
+            risk_shap_segment_csv=CLINIC_PROCESSED_DIR / "clinic_risk_shap_segment.csv",
+            risk_shap_effects_csv=CLINIC_PROCESSED_DIR / "clinic_risk_shap_effects.csv",
+            risk_shap_explanations_csv=CLINIC_PROCESSED_DIR / "clinic_risk_shap_explanations.csv",
+            risk_shap_summary_json=CLINIC_PROCESSED_DIR / "clinic_risk_shap_summary.json",
             dashboard_images=[CLINIC_PROCESSED_DIR / "clinic_executive_dashboard.png"],
             summary_title="Clinica Ambulatoria",
             summary_subtitle="Riesgo de deficit por unidad ambulatoria y turno con foco en agenda, procedimientos, boxes activos y roles criticos.",
+            segment_label="Unidad / turno",
         )
     if domain == "restaurant":
         return DomainArtifacts(
@@ -49,15 +64,28 @@ def get_domain_artifacts(domain: str) -> DomainArtifacts:
             processed_dir=RESTAURANT_PROCESSED_DIR,
             metrics_json=RESTAURANT_PROCESSED_DIR / "restaurant_staffing_metrics.json",
             predictions_csv=RESTAURANT_PROCESSED_DIR / "restaurant_staffing_predictions.csv",
+            risk_shap_global_csv=RESTAURANT_PROCESSED_DIR / "restaurant_risk_shap_global.csv",
+            headcount_shap_global_csv=RESTAURANT_PROCESSED_DIR / "restaurant_headcount_shap_global.csv",
+            risk_shap_segment_csv=RESTAURANT_PROCESSED_DIR / "restaurant_risk_shap_segment.csv",
+            risk_shap_effects_csv=RESTAURANT_PROCESSED_DIR / "restaurant_risk_shap_effects.csv",
+            risk_shap_explanations_csv=RESTAURANT_PROCESSED_DIR / "restaurant_risk_shap_explanations.csv",
+            risk_shap_summary_json=RESTAURANT_PROCESSED_DIR / "restaurant_risk_shap_summary.json",
             dashboard_images=[RESTAURANT_PROCESSED_DIR / "restaurant_executive_dashboard.png"],
             summary_title="Restaurant Casual Dining",
             summary_subtitle="Riesgo de déficit por franja, roles críticos y presión operativa en calendario Chile.",
+            segment_label="Franja",
         )
     return DomainArtifacts(
         raw_dir=RAW_DIR,
         processed_dir=PROCESSED_DIR,
         metrics_json=PROCESSED_DIR / "staffing_inference_metrics.json",
         predictions_csv=PROCESSED_DIR / "staffing_inference_predictions.csv",
+        risk_shap_global_csv=PROCESSED_DIR / "industrial_risk_shap_global.csv",
+        headcount_shap_global_csv=PROCESSED_DIR / "industrial_headcount_shap_global.csv",
+        risk_shap_segment_csv=PROCESSED_DIR / "industrial_risk_shap_segment.csv",
+        risk_shap_effects_csv=PROCESSED_DIR / "industrial_risk_shap_effects.csv",
+        risk_shap_explanations_csv=PROCESSED_DIR / "industrial_risk_shap_explanations.csv",
+        risk_shap_summary_json=PROCESSED_DIR / "industrial_risk_shap_summary.json",
         dashboard_images=[
             PROCESSED_DIR / "headcount_actual_vs_predicted.png",
             PROCESSED_DIR / "roc_curve_staffing.png",
@@ -69,6 +97,7 @@ def get_domain_artifacts(domain: str) -> DomainArtifacts:
         ],
         summary_title="Industrial Staffing",
         summary_subtitle="Cobertura esperada por área y turno con foco en déficit operacional y disponibilidad real.",
+        segment_label="Area / turno",
     )
 
 
@@ -206,6 +235,23 @@ def load_predictions(predictions_csv: Path) -> pd.DataFrame:
     return df
 
 
+@st.cache_data(show_spinner=False)
+def load_optional_csv(csv_path: Path) -> pd.DataFrame:
+    if not csv_path.exists():
+        return pd.DataFrame()
+    df = pd.read_csv(csv_path)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    return df
+
+
+@st.cache_data(show_spinner=False)
+def load_optional_json(json_path: Path) -> dict:
+    if not json_path.exists():
+        return {}
+    return json.loads(json_path.read_text(encoding="utf-8"))
+
+
 def build_filters(domain: str, df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
@@ -338,6 +384,192 @@ def render_kpis(domain: str, df: pd.DataFrame, metrics_payload: dict) -> None:
             f"Mejor clasificador activo: {metrics_payload['best_classifier'].get('name', 'N/D')} | "
             f"Threshold: {metrics_payload['best_classifier'].get('threshold', 0):.3f}"
         )
+
+
+def _safe_numeric_frame(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFrame:
+    cleaned = df.copy()
+    for col in numeric_cols:
+        if col in cleaned.columns:
+            cleaned[col] = pd.to_numeric(cleaned[col], errors="coerce")
+    for col in numeric_cols:
+        if col in cleaned.columns:
+            cleaned = cleaned[np.isfinite(cleaned[col])]
+    return cleaned
+
+
+def render_shap_narrative(domain: str, summary_payload: dict) -> bool:
+    if not summary_payload:
+        return False
+    st.markdown('<div class="section-title">Narrativa explicativa del modelo</div>', unsafe_allow_html=True)
+    drivers_up = summary_payload.get("drivers_up", [])
+    drivers_down = summary_payload.get("drivers_down", [])
+    segment_highlight = summary_payload.get("segment_highlight", {})
+
+    lines = []
+    if drivers_up:
+        top_names = ", ".join(f"`{row['feature_label']}`" for row in drivers_up[:2])
+        lines.append(f"Los factores que mas empujan el riesgo son {top_names}.")
+    if drivers_down:
+        top_names = ", ".join(f"`{row['feature_label']}`" for row in drivers_down[:2])
+        lines.append(f"Los factores que mas lo compensan son {top_names}.")
+    if segment_highlight:
+        lines.append(segment_highlight.get("message", ""))
+
+    if domain == "restaurant":
+        lines.append("La lectura recomendada para operaciones es usar estas explicaciones para decidir refuerzos por franja, reservas, delivery y fatiga del equipo.")
+    elif domain == "clinic":
+        lines.append("La lectura recomendada para operaciones es usar estas explicaciones para decidir refuerzos por agenda, boxes, procedimientos y ausentismo del equipo.")
+    else:
+        lines.append("La lectura recomendada para operaciones es usar estas explicaciones para anticipar cobertura, fatiga y ausentismo por area y turno.")
+
+    st.info(" ".join(line for line in lines if line))
+    return True
+
+
+def render_shap_global_chart(title: str, df: pd.DataFrame, direction_axis_title: str) -> bool:
+    cleaned = _safe_numeric_frame(df, ["mean_abs_shap", "mean_shap"])
+    if cleaned.empty:
+        return False
+    top_df = cleaned.nlargest(10, "mean_abs_shap").copy()
+    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+    chart = (
+        alt.Chart(top_df)
+        .mark_bar(cornerRadiusTopLeft=8, cornerRadiusTopRight=8)
+        .encode(
+            x=alt.X("mean_abs_shap:Q", title="Impacto medio absoluto (SHAP)"),
+            y=alt.Y("feature_label:N", sort="-x", title="Factor"),
+            color=alt.Color(
+                "mean_shap:Q",
+                title=direction_axis_title,
+                scale=alt.Scale(domainMid=0, scheme="redblue"),
+            ),
+            tooltip=[
+                "feature_label:N",
+                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Impacto medio"),
+                alt.Tooltip("mean_shap:Q", format=".4f", title=direction_axis_title),
+                "impact_direction:N",
+            ],
+        )
+        .properties(height=320)
+    )
+    st.altair_chart(chart, width="stretch")
+    return True
+
+
+def render_shap_segment_heatmap(df: pd.DataFrame, segment_label: str) -> bool:
+    cleaned = _safe_numeric_frame(df, ["mean_shap", "mean_abs_shap"])
+    if cleaned.empty:
+        return False
+    top_features = (
+        cleaned.groupby("feature_label", as_index=False)["mean_abs_shap"]
+        .mean()
+        .sort_values("mean_abs_shap", ascending=False)
+        .head(8)["feature_label"]
+        .tolist()
+    )
+    heatmap_df = cleaned[cleaned["feature_label"].isin(top_features)].copy()
+    st.markdown('<div class="section-title">Drivers del riesgo por segmento</div>', unsafe_allow_html=True)
+    chart = (
+        alt.Chart(heatmap_df)
+        .mark_rect(cornerRadius=4)
+        .encode(
+            x=alt.X("segment_label:N", title=segment_label),
+            y=alt.Y("feature_label:N", sort=top_features, title="Factor"),
+            color=alt.Color("mean_shap:Q", title="Empuje neto del riesgo", scale=alt.Scale(domainMid=0, scheme="redblue")),
+            tooltip=[
+                "segment_label:N",
+                "feature_label:N",
+                alt.Tooltip("mean_shap:Q", format=".4f", title="Impacto neto"),
+                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Impacto absoluto"),
+            ],
+        )
+        .properties(height=320)
+    )
+    st.altair_chart(chart, width="stretch")
+    return True
+
+
+def render_shap_effect_chart(df: pd.DataFrame, select_key: str, segment_label: str) -> bool:
+    cleaned = _safe_numeric_frame(df, ["feature_value", "shap_value"])
+    if cleaned.empty:
+        return False
+    options = cleaned["feature_label"].dropna().unique().tolist()
+    if not options:
+        return False
+    selected_feature = st.selectbox("Factor a explorar", options, key=select_key)
+    feature_df = cleaned[cleaned["feature_label"] == selected_feature].copy()
+    st.markdown('<div class="section-title">Como cambia el impacto segun el valor del factor</div>', unsafe_allow_html=True)
+    chart = (
+        alt.Chart(feature_df)
+        .mark_circle(size=70, opacity=0.72)
+        .encode(
+            x=alt.X("feature_value:Q", title=selected_feature),
+            y=alt.Y("shap_value:Q", title="Impacto SHAP sobre el riesgo"),
+            color=alt.Color("segment_label:N", title=segment_label),
+            tooltip=[
+                "segment_label:N",
+                alt.Tooltip("feature_value:Q", format=".3f", title="Valor"),
+                alt.Tooltip("shap_value:Q", format=".4f", title="Impacto"),
+            ],
+        )
+        .properties(height=320)
+    )
+    st.altair_chart(chart, width="stretch")
+    return True
+
+
+def render_shap_explanations_table(df: pd.DataFrame) -> bool:
+    if df.empty:
+        return False
+    columns = [
+        col for col in [
+            "date",
+            "service_period",
+            "clinical_unit",
+            "shift",
+            "plant_area",
+            "predicted_deficit_probability",
+            "top_up_driver_1",
+            "top_up_driver_2",
+            "top_down_driver_1",
+            "top_down_driver_2",
+        ]
+        if col in df.columns
+    ]
+    preview_df = df[columns].head(20).copy() if columns else df.head(20).copy()
+    st.markdown('<div class="section-title">Explicaciones de segmentos mas sensibles</div>', unsafe_allow_html=True)
+    st.dataframe(preview_df, width="stretch")
+    return True
+
+
+def render_shap_layout(domain: str, artifacts: DomainArtifacts) -> bool:
+    risk_global_df = load_optional_csv(artifacts.risk_shap_global_csv)
+    headcount_global_df = load_optional_csv(artifacts.headcount_shap_global_csv)
+    risk_segment_df = load_optional_csv(artifacts.risk_shap_segment_csv)
+    risk_effects_df = load_optional_csv(artifacts.risk_shap_effects_csv)
+    risk_explanations_df = load_optional_csv(artifacts.risk_shap_explanations_csv)
+
+    if risk_global_df.empty and headcount_global_df.empty:
+        return False
+
+    col_left, col_right = st.columns([1.1, 1])
+    with col_left:
+        render_shap_global_chart(
+            "Factores que mas explican el riesgo de deficit",
+            risk_global_df,
+            "Empuje neto del riesgo",
+        )
+        render_shap_global_chart(
+            "Factores que mas explican la dotacion disponible",
+            headcount_global_df,
+            "Empuje neto sobre la dotacion",
+        )
+    with col_right:
+        render_shap_segment_heatmap(risk_segment_df, artifacts.segment_label)
+        render_shap_effect_chart(risk_effects_df, f"shap_effect_{domain}", artifacts.segment_label)
+
+    render_shap_explanations_table(risk_explanations_df)
+    return True
 
 
 def _weekday_heatmap_base(df: pd.DataFrame) -> pd.DataFrame:
@@ -550,6 +782,10 @@ def render_static_gallery(artifacts: DomainArtifacts) -> None:
 
 
 def render_executive_narrative(domain: str, df: pd.DataFrame) -> None:
+    summary_payload = load_optional_json(get_domain_artifacts(domain).risk_shap_summary_json)
+    if render_shap_narrative(domain, summary_payload):
+        return
+
     st.markdown('<div class="section-title">Narrativa ejecutiva</div>', unsafe_allow_html=True)
     if df.empty:
         st.info("Sin datos filtrados para generar narrativa.")
@@ -624,6 +860,10 @@ def render_staffing_definitions() -> None:
 
 
 def render_domain_specific_layout(domain: str, filtered_df: pd.DataFrame) -> None:
+    artifacts = get_domain_artifacts(domain)
+    if render_shap_layout(domain, artifacts):
+        return
+
     if domain == "restaurant":
         col_left, col_right = st.columns([1.25, 1])
         with col_left:

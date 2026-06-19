@@ -9,6 +9,7 @@ import joblib
 import pandas as pd
 
 from config.settings import PROCESSED_DIR
+from src.models.shap_analysis import generate_shap_artifacts
 from src.models.staffing_models import evaluate_classification, evaluate_regression
 from src.utils.database import query_to_dataframe
 
@@ -57,11 +58,19 @@ def _prepare_inference_matrix(db_path=None, feature_names: list[str] | None = No
     return context_df, X, df
 
 
-def run_inference(db_path=None, processed_dir: Path | None = None):
+def run_inference(
+    db_path=None,
+    processed_dir: Path | None = None,
+    create_shap_outputs: bool = False,
+    shap_domain: str = "industrial",
+    shap_prefix: str = "industrial",
+    shap_segment_cols: list[str] | None = None,
+):
     artifacts = load_model_artifacts(processed_dir=processed_dir)
     metadata = artifacts["metadata"]
     feature_names = metadata["feature_names"]
     context_df, X, raw_df = _prepare_inference_matrix(db_path=db_path, feature_names=feature_names)
+    processed_dir = processed_dir or PROCESSED_DIR
 
     regressor = artifacts["regressor"]
     classifier_xgboost = artifacts["classifier_xgboost"]
@@ -86,6 +95,20 @@ def run_inference(db_path=None, processed_dir: Path | None = None):
     scored_df["predicted_deficit_probability"] = best_prob
     scored_df["predicted_has_deficit"] = (best_prob >= best_threshold).astype(int)
     scored_df["best_classifier_model"] = best_meta["name"]
+
+    if create_shap_outputs:
+        shap_context = scored_df.copy()
+        generate_shap_artifacts(
+            domain=shap_domain,
+            prefix=shap_prefix,
+            output_dir=processed_dir,
+            X=X,
+            context_df=shap_context,
+            risk_model=classifier_xgboost,
+            headcount_model=regressor,
+            risk_priority_scores=scored_df["predicted_deficit_probability"],
+            segment_cols=shap_segment_cols or ["plant_area", "shift"],
+        )
 
     metrics = {}
     if "actual_headcount" in raw_df.columns:

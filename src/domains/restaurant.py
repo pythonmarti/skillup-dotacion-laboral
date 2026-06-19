@@ -46,7 +46,7 @@ def run_infer(args: object) -> None:
     logger.info("[restaurant] Ejecutando inferencia")
     output_csv = Path(getattr(args, "output_csv", None) or (RESTAURANT_PROCESSED_DIR / "restaurant_staffing_predictions.csv"))
     output_metrics = Path(getattr(args, "output_metrics", None) or (RESTAURANT_PROCESSED_DIR / "restaurant_staffing_metrics.json"))
-    predictions, metrics, metadata = run_restaurant_inference()
+    predictions, metrics, metadata = run_restaurant_inference(create_shap_outputs=True)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
     output_metrics.parent.mkdir(parents=True, exist_ok=True)
     predictions.to_csv(output_csv, index=False)

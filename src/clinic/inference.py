@@ -8,6 +8,7 @@ import joblib
 import pandas as pd
 
 from config.clinic_settings import CLINIC_CRITICAL_ROLE_TARGETS, CLINIC_DB_PATH, CLINIC_PROCESSED_DIR
+from src.models.shap_analysis import generate_shap_artifacts
 from src.models.staffing_models import evaluate_classification, evaluate_regression
 from src.utils.database import query_to_dataframe
 
@@ -80,7 +81,7 @@ def _build_recommendation(row: pd.Series) -> str:
     return "Cobertura estable; mantener monitoreo de agenda y carga asistencial"
 
 
-def run_clinic_inference():
+def run_clinic_inference(create_shap_outputs: bool = False):
     artifacts = _load_artifacts()
     metadata = artifacts["metadata"]
     base_df, X = _prepare_matrix(metadata["feature_names"])
@@ -121,6 +122,19 @@ def run_clinic_inference():
             role_metrics[role] = evaluate_classification(base_df[f"has_deficit_role_{role}"].astype(int), probs, threshold=threshold)
 
     scored["recommended_action"] = scored.apply(_build_recommendation, axis=1)
+
+    if create_shap_outputs:
+        generate_shap_artifacts(
+            domain="clinic",
+            prefix="clinic",
+            output_dir=CLINIC_PROCESSED_DIR,
+            X=X,
+            context_df=scored,
+            risk_model=artifacts["xgboost"],
+            headcount_model=artifacts["regressor"],
+            risk_priority_scores=scored["predicted_deficit_probability"],
+            segment_cols=["clinical_unit", "shift"],
+        )
 
     metrics = {
         "regression": evaluate_regression(base_df["actual_headcount_total"], pred_headcount),
