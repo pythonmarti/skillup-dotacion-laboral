@@ -40,6 +40,7 @@ def _prepare_matrix(feature_names: list[str]):
             "date",
             "actual_patient_volume",
             "required_headcount_total",
+            "scheduled_headcount_total",
             "actual_headcount_total",
             "deficit_count_total",
             "has_deficit_total",
@@ -53,6 +54,7 @@ def _prepare_matrix(feature_names: list[str]):
         or col.startswith("actual_")
         or col.startswith("deficit_role_")
         or col.startswith("has_deficit_role_")
+        or col.startswith("scheduled_role_")
     ]
     X = encoded.drop(columns=drop_cols)
     object_cols = X.select_dtypes(include=["object", "category"]).columns.tolist()
@@ -112,6 +114,12 @@ def run_clinic_inference(create_shap_outputs: bool = False):
     scored["predicted_has_deficit"] = (best_prob >= best_threshold).astype(int)
     scored["best_classifier_model"] = best_name
 
+    split_date = metadata.get("split_date")
+    if split_date:
+        test_mask = pd.to_datetime(base_df["date"]) >= pd.Timestamp(split_date)
+    else:
+        test_mask = slice(None)
+
     role_metrics = {}
     for role, model in artifacts["roles"].items():
         probs = model.predict_proba(X)[:, 1]
@@ -119,7 +127,11 @@ def run_clinic_inference(create_shap_outputs: bool = False):
         threshold = float(metadata["thresholds"]["role_thresholds"][role])
         scored[f"predicted_role_has_deficit_{role}"] = (probs >= threshold).astype(int)
         if f"has_deficit_role_{role}" in base_df.columns:
-            role_metrics[role] = evaluate_classification(base_df[f"has_deficit_role_{role}"].astype(int), probs, threshold=threshold)
+            role_metrics[role] = evaluate_classification(
+                base_df.loc[test_mask, f"has_deficit_role_{role}"].astype(int),
+                probs[test_mask],
+                threshold=threshold,
+            )
 
     scored["recommended_action"] = scored.apply(_build_recommendation, axis=1)
 
@@ -137,10 +149,10 @@ def run_clinic_inference(create_shap_outputs: bool = False):
         )
 
     metrics = {
-        "regression": evaluate_regression(base_df["actual_headcount_total"], pred_headcount),
-        "classification_xgboost": evaluate_classification(base_df["has_deficit_total"].astype(int), prob_xgb, threshold=float(metadata["thresholds"]["clinic_xgboost"])),
-        "classification_calibrated": evaluate_classification(base_df["has_deficit_total"].astype(int), prob_cal, threshold=float(metadata["thresholds"]["clinic_calibrated"])),
-        "classification_best": evaluate_classification(base_df["has_deficit_total"].astype(int), best_prob, threshold=best_threshold),
+        "regression": evaluate_regression(base_df.loc[test_mask, "actual_headcount_total"], pred_headcount[test_mask]),
+        "classification_xgboost": evaluate_classification(base_df.loc[test_mask, "has_deficit_total"].astype(int), prob_xgb[test_mask], threshold=float(metadata["thresholds"]["clinic_xgboost"])),
+        "classification_calibrated": evaluate_classification(base_df.loc[test_mask, "has_deficit_total"].astype(int), prob_cal[test_mask], threshold=float(metadata["thresholds"]["clinic_calibrated"])),
+        "classification_best": evaluate_classification(base_df.loc[test_mask, "has_deficit_total"].astype(int), best_prob[test_mask], threshold=best_threshold),
         "role_models": role_metrics,
     }
     return scored, metrics, metadata

@@ -336,10 +336,10 @@ def render_kpis(domain: str, df: pd.DataFrame, metrics_payload: dict) -> None:
             key=lambda role: df.get(f"predicted_role_deficit_prob_{role}", pd.Series([0])).mean(),
         )
         cards = [
-            ("Riesgo medio", f"{risk:.1%}"),
-            ("Franjas alto riesgo", f"{high_risk}"),
-            ("Brecha media esperada", f"{gap:.2f}"),
-            ("Rol más expuesto", top_role),
+            ("Probabilidad de deficit", f"{risk:.1%}"),
+            ("Turnos en riesgo", f"{high_risk}"),
+            ("Deficit promedio", f"{gap:.2f}"),
+            ("Rol mas critico", top_role),
         ]
     elif domain == "clinic":
         risk = float(df["predicted_deficit_probability"].mean())
@@ -386,9 +386,9 @@ def render_kpis(domain: str, df: pd.DataFrame, metrics_payload: dict) -> None:
         )
 
     if metrics_payload.get("best_classifier"):
+        threshold_pct = metrics_payload["best_classifier"].get("threshold", 0) * 100
         st.caption(
-            f"Mejor clasificador activo: {metrics_payload['best_classifier'].get('name', 'N/D')} | "
-            f"Threshold: {metrics_payload['best_classifier'].get('threshold', 0):.3f}"
+            f"El modelo alerta cuando la probabilidad de deficit supera el {threshold_pct:.0f}%"
         )
 
 
@@ -406,7 +406,7 @@ def _safe_numeric_frame(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFra
 def render_shap_narrative(domain: str, summary_payload: dict) -> bool:
     if not summary_payload:
         return False
-    st.markdown('<div class="section-title">Narrativa explicativa del modelo</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">¿Por que podria faltar personal?</div>', unsafe_allow_html=True)
     drivers_up = summary_payload.get("drivers_up", [])
     drivers_down = summary_payload.get("drivers_down", [])
     segment_highlight = summary_payload.get("segment_highlight", {})
@@ -414,15 +414,15 @@ def render_shap_narrative(domain: str, summary_payload: dict) -> bool:
     lines = []
     if drivers_up:
         top_names = ", ".join(f"`{row['feature_label']}`" for row in drivers_up[:2])
-        lines.append(f"Los factores que mas empujan el riesgo son {top_names}.")
+        lines.append(f"Principales factores que aumentan el deficit: {top_names}.")
     if drivers_down:
         top_names = ", ".join(f"`{row['feature_label']}`" for row in drivers_down[:2])
-        lines.append(f"Los factores que mas lo compensan son {top_names}.")
+        lines.append(f"Principales factores que reducen el deficit: {top_names}.")
     if segment_highlight:
         lines.append(segment_highlight.get("message", ""))
 
     if domain == "restaurant":
-        lines.append("La lectura recomendada para operaciones es usar estas explicaciones para decidir refuerzos por franja, reservas, delivery y fatiga del equipo.")
+        lines.append("Antes de cada turno revise estos indicadores: si aumentan las reservas, los cubiertos proyectados o la fatiga del equipo, considere reforzar la dotacion.")
     elif domain == "clinic":
         lines.append("La lectura recomendada para operaciones es usar estas explicaciones para decidir refuerzos por agenda, boxes, procedimientos y ausentismo del equipo.")
     else:
@@ -442,7 +442,7 @@ def render_shap_global_chart(title: str, df: pd.DataFrame, direction_axis_title:
         alt.Chart(top_df)
         .mark_bar(cornerRadiusTopLeft=8, cornerRadiusTopRight=8)
         .encode(
-            x=alt.X("mean_abs_shap:Q", title="Impacto medio absoluto (SHAP)"),
+            x=alt.X("mean_abs_shap:Q", title="Cuánto influye"),
             y=alt.Y("feature_label:N", sort="-x", title="Factor"),
             color=alt.Color(
                 "mean_shap:Q",
@@ -451,7 +451,7 @@ def render_shap_global_chart(title: str, df: pd.DataFrame, direction_axis_title:
             ),
             tooltip=[
                 "feature_label:N",
-                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Impacto medio"),
+                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Influye"),
                 alt.Tooltip("mean_shap:Q", format=".4f", title=direction_axis_title),
                 "impact_direction:N",
             ],
@@ -474,19 +474,19 @@ def render_shap_segment_heatmap(df: pd.DataFrame, segment_label: str) -> bool:
         .tolist()
     )
     heatmap_df = cleaned[cleaned["feature_label"].isin(top_features)].copy()
-    st.markdown('<div class="section-title">Drivers del riesgo por segmento</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">¿En que turno impacta mas cada factor?</div>', unsafe_allow_html=True)
     chart = (
         alt.Chart(heatmap_df)
         .mark_rect(cornerRadius=4)
         .encode(
             x=alt.X("segment_label:N", title=segment_label),
             y=alt.Y("feature_label:N", sort=top_features, title="Factor"),
-            color=alt.Color("mean_shap:Q", title="Empuje neto del riesgo", scale=alt.Scale(domainMid=0, scheme="redblue")),
+            color=alt.Color("mean_shap:Q", title="Efecto sobre el riesgo", scale=alt.Scale(domainMid=0, scheme="redblue")),
             tooltip=[
                 "segment_label:N",
                 "feature_label:N",
-                alt.Tooltip("mean_shap:Q", format=".4f", title="Impacto neto"),
-                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Impacto absoluto"),
+                alt.Tooltip("mean_shap:Q", format=".4f", title="Efecto neto"),
+                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Efecto total"),
             ],
         )
         .properties(height=320)
@@ -543,7 +543,7 @@ def render_restaurant_role_shap_chart(role_df: pd.DataFrame, predictions_df: pd.
         default_role = max(role_probs, key=role_probs.get)
 
     selected_role = st.selectbox(
-        "Rol crítico a explicar",
+        "Seleccione un rol",
         available_roles,
         index=available_roles.index(default_role),
         key="restaurant_role_shap",
@@ -553,34 +553,34 @@ def render_restaurant_role_shap_chart(role_df: pd.DataFrame, predictions_df: pd.
         return False
 
     avg_prob = role_probs.get(selected_role)
-    title = f"Por qué {selected_role} aparece como rol más tensionado"
+    title = f"¿Por que falta el rol {selected_role}?"
     if avg_prob is not None:
-        title = f"Por qué {selected_role} aparece tensionado ({avg_prob:.1%} riesgo medio)"
+        title = f"¿Por que falta el rol {selected_role}? ({avg_prob:.1%} de riesgo)"
 
     st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
     chart = (
         alt.Chart(selected_df)
         .mark_bar(cornerRadiusTopLeft=8, cornerRadiusTopRight=8)
         .encode(
-            x=alt.X("mean_abs_shap:Q", title="Impacto medio absoluto sobre el déficit del rol"),
+            x=alt.X("mean_abs_shap:Q", title="Cuanto influye en la falta de este rol"),
             y=alt.Y("feature_label:N", sort="-x", title="Factor"),
             color=alt.Color(
                 "mean_shap:Q",
-                title="Empuje neto del déficit del rol",
+                title="Aumenta o reduce el deficit del rol",
                 scale=alt.Scale(domainMid=0, scheme="redblue"),
             ),
             tooltip=[
                 alt.Tooltip("role:N", title="Rol"),
                 "feature_label:N",
-                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Impacto medio"),
-                alt.Tooltip("mean_shap:Q", format=".4f", title="Empuje neto"),
+                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Influye"),
+                alt.Tooltip("mean_shap:Q", format=".4f", title="Efecto neto"),
                 "impact_direction:N",
             ],
         )
         .properties(height=320)
     )
     st.altair_chart(chart, width="stretch")
-    st.caption("Lectura: barras más largas explican mejor por qué este rol termina quedando corto. Valores rojos empujan el déficit del rol hacia arriba.")
+    st.caption("Barra larga = mayor influencia. Rojo = aumenta el deficit. Azul = lo reduce.")
     return True
 
 
@@ -603,7 +603,7 @@ def render_shap_explanations_table(df: pd.DataFrame) -> bool:
         if col in df.columns
     ]
     preview_df = df[columns].head(20).copy() if columns else df.head(20).copy()
-    st.markdown('<div class="section-title">Explicaciones de segmentos mas sensibles</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Detalle de los turnos con mayor riesgo</div>', unsafe_allow_html=True)
     st.dataframe(preview_df, width="stretch")
     return True
 
@@ -622,14 +622,14 @@ def render_shap_layout(domain: str, artifacts: DomainArtifacts, filtered_df: pd.
     col_left, col_right = st.columns([1.1, 1])
     with col_left:
         render_shap_global_chart(
-            "Factores que mas explican el riesgo de deficit",
+            "¿Por que se produce el deficit de personal?",
             risk_global_df,
-            "Empuje neto del riesgo",
+            "Aumenta o reduce el riesgo",
         )
         render_shap_global_chart(
-            "Factores que mas explican la dotacion disponible",
+            "¿Que influye en el personal disponible?",
             headcount_global_df,
-            "Empuje neto sobre la dotacion",
+            "Aumenta o reduce la dotacion",
         )
     with col_right:
         render_shap_segment_heatmap(risk_segment_df, artifacts.segment_label)
@@ -865,9 +865,9 @@ def render_executive_narrative(domain: str, df: pd.DataFrame) -> None:
         top_period = df.groupby("service_period")["predicted_deficit_probability"].mean().sort_values(ascending=False).index[0]
         top_role = max(CRITICAL_ROLE_TARGETS, key=lambda role: df.get(f"predicted_role_deficit_prob_{role}", pd.Series([0])).mean())
         message = (
-            f"La mayor exposición se concentra en la franja `{top_period}`. "
-            f"El rol con mayor riesgo relativo es `{top_role}`. "
-            "La recomendación operativa es anticipar reemplazos o movimiento de personal cross-trained en los bloques con mayor demanda."
+            f"El turno con mayor riesgo es `{top_period}`. "
+            f"El rol con mayor probabilidad de deficit es `{top_role}`. "
+            "Se recomienda reforzar ese turno con personal extra o cross-trained con anticipacion."
         )
     elif domain == "clinic":
         top_unit = df.groupby(["clinical_unit", "shift"])["predicted_deficit_probability"].mean().sort_values(ascending=False)

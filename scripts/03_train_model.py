@@ -61,13 +61,14 @@ def _save_model_artifacts(
     reg_metrics,
     class2_metrics,
     class3_metrics,
+    split_date,
+    best_classifier_name,
 ):
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(regressor, PROCESSED_DIR / "headcount_regressor.pkl")
     joblib.dump(classifier_df, PROCESSED_DIR / "deficit_classifier_xgboost.pkl")
     joblib.dump(calibrated_model, PROCESSED_DIR / "deficit_classifier_calibrated.pkl")
 
-    best_classifier_name = _select_best_classifier(class2_metrics, class3_metrics)
     best_classifier_path = (
         "deficit_classifier_xgboost.pkl"
         if best_classifier_name == "Modelo 2 (XGBoost)"
@@ -76,6 +77,7 @@ def _save_model_artifacts(
 
     metadata = {
         "feature_names": list(feature_names),
+        "split_date": split_date,
         "thresholds": {
             "Modelo 2 (XGBoost)": float(optimal_th_c2),
             "Modelo 3 (Calibrado)": float(optimal_th_c3),
@@ -160,7 +162,7 @@ def main():
         X_full.shape[0], X_full.shape[1], y_full_class.mean() * 100,
     )
 
-    # 2. Split temporal
+    # 2. Split temporal: train -> test
     logger.info("[2/6] Aplicando split temporal (test_ratio=%.0f%%)...", MODEL_CONFIG["test_ratio"] * 100)
     if dates is not None:
         temp_df = X_full.copy()
@@ -168,13 +170,27 @@ def main():
         temp_df["_target_class"] = y_full_class.values
         temp_df["_target_reg"] = y_full_reg.values
 
-        train_df, test_df = temporal_train_test_split(
+        trainval_df, test_df, split_date = temporal_train_test_split(
             temp_df, date_col="date", test_ratio=MODEL_CONFIG["test_ratio"]
+        )
+
+        # Sub-split train en train + val para seleccion de modelo sin contaminar test
+        train_df, val_df, _ = temporal_train_test_split(
+            trainval_df, date_col="date", test_ratio=0.2
         )
 
         X_train = train_df.drop(columns=["date", "_target_class", "_target_reg"])
         y_train_class = train_df["_target_class"].astype(int)
         y_train_reg = train_df["_target_reg"]
+
+        # Validation set para seleccion de mejor clasificador
+        X_val = val_df.drop(columns=["date", "_target_class", "_target_reg"])
+        y_val_class = val_df["_target_class"].astype(int)
+
+        # Train+val combinado para reentrenamiento final
+        X_trainval = trainval_df.drop(columns=["date", "_target_class", "_target_reg"])
+        y_trainval_class = trainval_df["_target_class"].astype(int)
+        y_trainval_reg = trainval_df["_target_reg"]
 
         X_test = test_df.drop(columns=["date", "_target_class", "_target_reg"])
         y_test_class = test_df["_target_class"].astype(int)
@@ -183,19 +199,19 @@ def main():
         raise ValueError("Se requieren fechas para realizar la validacion temporal.")
 
     logger.info(
-        "  Train: %d registros | deficit: %d (%.1f%%)",
-        X_train.shape[0], y_train_class.sum(), y_train_class.mean() * 100,
+        "  Train: %d reg | Val: %d reg | Test: %d reg",
+        X_train.shape[0], X_val.shape[0], X_test.shape[0],
     )
     logger.info(
-        "  Test:  %d registros | deficit: %d (%.1f%%)",
-        X_test.shape[0], y_test_class.sum(), y_test_class.mean() * 100,
+        "  Train deficit: %.1f%% | Val deficit: %.1f%% | Test deficit: %.1f%%",
+        y_train_class.mean() * 100, y_val_class.mean() * 100, y_test_class.mean() * 100,
     )
 
     # ==========================================
-    # Modelo 1: Regresor de Headcount
+    # Modelo 1: Regresor de Headcount (train+val -> test ciego)
     # ==========================================
     logger.info("[3/6] Entrenando Modelo 1: Regresor de Headcount (RandomForest)...")
-    regressor = train_headcount_regressor(X_train, y_train_reg)
+    regressor = train_headcount_regressor(X_trainval, y_trainval_reg)
     test_pred_reg = regressor.predict(X_test)
     reg_metrics = evaluate_regression(y_test_reg, test_pred_reg)
 
@@ -209,45 +225,75 @@ def main():
     )
 
     # ==========================================
-    # Modelo 2: Clasificador de Riesgo de Déficit
+    # Modelo 2: Clasificador de Deficit (train -> val para seleccion, train+val -> test ciego)
     # ==========================================
     logger.info("[4/6] Entrenando Modelo 2: Clasificador de Deficit (XGBoost)...")
-    classifier_df = train_deficit_classifier(X_train, y_train_class)
 
-    train_prob_c2 = classifier_df.predict_proba(X_train)[:, 1]
-    optimal_th_c2 = find_optimal_threshold(y_train_class, train_prob_c2)
-
-    test_prob_c2 = classifier_df.predict_proba(X_test)[:, 1]
-    class2_metrics = evaluate_classification(y_test_class, test_prob_c2, threshold=optimal_th_c2)
-    test_pred_c2 = (test_prob_c2 >= optimal_th_c2).astype(int)
+    # Fase 1: entrenar en train, evaluar en val para seleccion de modelo
+    classifier_train = train_deficit_classifier(X_train, y_train_class)
+    val_prob_c2 = classifier_train.predict_proba(X_val)[:, 1]
+    val_th_c2 = find_optimal_threshold(y_train_class, classifier_train.predict_proba(X_train)[:, 1])
+    val_metrics_c2 = evaluate_classification(y_val_class, val_prob_c2, threshold=val_th_c2)
 
     logger.info(
-        "  Modelo 2 - AUC: %.4f | F1: %.4f | Precision: %.4f | Recall: %.4f | Brier: %.4f",
+        "  Modelo 2 [VAL] - AUC: %.4f | F1: %.4f | Brier: %.4f",
+        val_metrics_c2["AUC-ROC"], val_metrics_c2["F1-Score"], val_metrics_c2["Brier Score"],
+    )
+
+    # Fase 1: Modelo 3 tambien sobre train -> val
+    logger.info("[5/6] Entrenando Modelo 3: Ensamble Calibrado (Isotonic XGBoost)...")
+    calibrated_train = train_calibrated_ensemble(X_train, y_train_class)
+    val_prob_c3 = calibrated_train.predict_proba(X_val)[:, 1]
+    val_th_c3 = find_optimal_threshold(y_train_class, calibrated_train.predict_proba(X_train)[:, 1])
+    val_metrics_c3 = evaluate_classification(y_val_class, val_prob_c3, threshold=val_th_c3)
+
+    logger.info(
+        "  Modelo 3 [VAL] - AUC: %.4f | F1: %.4f | Brier: %.4f",
+        val_metrics_c3["AUC-ROC"], val_metrics_c3["F1-Score"], val_metrics_c3["Brier Score"],
+    )
+
+    # Seleccion del mejor clasificador usando solo val
+    best_name = _select_best_classifier(val_metrics_c2, val_metrics_c3)
+    logger.info("  Mejor clasificador segun validacion: %s", best_name)
+
+    # Fase 2: reentrenar el mejor en train+val y evaluar en test ciego
+    if best_name == "Modelo 2 (XGBoost)":
+        classifier_df = train_deficit_classifier(X_trainval, y_trainval_class)
+        optimal_th_c2 = find_optimal_threshold(y_trainval_class, classifier_df.predict_proba(X_trainval)[:, 1])
+        test_prob_c2 = classifier_df.predict_proba(X_test)[:, 1]
+        class2_metrics = evaluate_classification(y_test_class, test_prob_c2, threshold=optimal_th_c2)
+
+        calibrated_model = train_calibrated_ensemble(X_trainval, y_trainval_class)
+        optimal_th_c3 = find_optimal_threshold(y_trainval_class, calibrated_model.predict_proba(X_trainval)[:, 1])
+        test_prob_c3 = calibrated_model.predict_proba(X_test)[:, 1]
+        class3_metrics = evaluate_classification(y_test_class, test_prob_c3, threshold=optimal_th_c3)
+    else:
+        calibrated_model = train_calibrated_ensemble(X_trainval, y_trainval_class)
+        optimal_th_c3 = find_optimal_threshold(y_trainval_class, calibrated_model.predict_proba(X_trainval)[:, 1])
+        test_prob_c3 = calibrated_model.predict_proba(X_test)[:, 1]
+        class3_metrics = evaluate_classification(y_test_class, test_prob_c3, threshold=optimal_th_c3)
+
+        classifier_df = train_deficit_classifier(X_trainval, y_trainval_class)
+        optimal_th_c2 = find_optimal_threshold(y_trainval_class, classifier_df.predict_proba(X_trainval)[:, 1])
+        test_prob_c2 = classifier_df.predict_proba(X_test)[:, 1]
+        class2_metrics = evaluate_classification(y_test_class, test_prob_c2, threshold=optimal_th_c2)
+
+    test_pred_c2 = (test_prob_c2 >= optimal_th_c2).astype(int)
+    test_pred_c3 = (test_prob_c3 >= optimal_th_c3).astype(int)
+
+    logger.info(
+        "  Modelo 2 [TEST] - AUC: %.4f | F1: %.4f | Precision: %.4f | Recall: %.4f | Brier: %.4f",
         class2_metrics["AUC-ROC"], class2_metrics["F1-Score"],
         class2_metrics["Precision"], class2_metrics["Recall"],
         class2_metrics["Brier Score"],
     )
-    plot_confusion_matrix(y_test_class, test_pred_c2, "Modelo 2 (XGBoost)")
-
-    # ==========================================
-    # Modelo 3: Ensamble Calibrado
-    # ==========================================
-    logger.info("[5/6] Entrenando Modelo 3: Ensamble Calibrado (Isotonic XGBoost)...")
-    calibrated_model = train_calibrated_ensemble(X_train, y_train_class)
-
-    train_prob_c3 = calibrated_model.predict_proba(X_train)[:, 1]
-    optimal_th_c3 = find_optimal_threshold(y_train_class, train_prob_c3)
-
-    test_prob_c3 = calibrated_model.predict_proba(X_test)[:, 1]
-    class3_metrics = evaluate_classification(y_test_class, test_prob_c3, threshold=optimal_th_c3)
-    test_pred_c3 = (test_prob_c3 >= optimal_th_c3).astype(int)
-
     logger.info(
-        "  Modelo 3 - AUC: %.4f | F1: %.4f | Precision: %.4f | Recall: %.4f | Brier: %.4f",
+        "  Modelo 3 [TEST] - AUC: %.4f | F1: %.4f | Precision: %.4f | Recall: %.4f | Brier: %.4f",
         class3_metrics["AUC-ROC"], class3_metrics["F1-Score"],
         class3_metrics["Precision"], class3_metrics["Recall"],
         class3_metrics["Brier Score"],
     )
+    plot_confusion_matrix(y_test_class, test_pred_c2, "Modelo 2 (XGBoost)")
     plot_confusion_matrix(y_test_class, test_pred_c3, "Modelo 3 (Calibrado)")
 
     # ==========================================
@@ -291,6 +337,8 @@ def main():
         reg_metrics,
         class2_metrics,
         class3_metrics,
+        split_date,
+        best_name,
     )
 
     logger.info("=" * 60)

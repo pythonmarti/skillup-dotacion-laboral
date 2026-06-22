@@ -19,21 +19,25 @@ def temporal_train_test_split(df, date_col="date", test_ratio=0.2):
 
     Returns
     -------
-    train_df, test_df : pd.DataFrame
+    train_df, test_df, split_date : (pd.DataFrame, pd.DataFrame, str)
+        train_df: datos de entrenamiento (fechas anteriores al corte).
+        test_df: datos de test (fechas desde el corte en adelante).
+        split_date: fecha de corte en formato ISO (YYYY-MM-DD).
     """
     df = df.sort_values(date_col).reset_index(drop=True)
     dates = pd.to_datetime(df[date_col]).sort_values().unique()
     split_idx = int(len(dates) * (1 - test_ratio))
-    split_date = dates[split_idx]
+    split_date = pd.Timestamp(dates[split_idx])
 
     train_df = df[pd.to_datetime(df[date_col]) < split_date].copy()
     test_df = df[pd.to_datetime(df[date_col]) >= split_date].copy()
 
+    split_date_str = split_date.strftime("%Y-%m-%d")
     print(f"  Split temporal: train={len(train_df)} ({split_idx} dias), "
           f"test={len(test_df)} ({len(dates) - split_idx} dias)")
-    print(f"  Fecha de corte: {split_date}")
+    print(f"  Fecha de corte: {split_date_str}")
 
-    return train_df, test_df
+    return train_df, test_df, split_date_str
 
 
 def prepare_feature_matrix(db_path=None):
@@ -70,7 +74,7 @@ def prepare_feature_matrix(db_path=None):
 
     # Drop columnas no-features
     drop_cols = [
-        "date", target_class, target_reg, "deficit_count", "absentee_rate"
+        "date", target_class, target_reg, "deficit_count", "absentee_rate", "scheduled_headcount"
     ]
     drop_cols = [c for c in drop_cols if c in df.columns]
     X = df.drop(columns=drop_cols)

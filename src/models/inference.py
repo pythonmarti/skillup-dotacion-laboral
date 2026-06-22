@@ -39,7 +39,7 @@ def _prepare_inference_matrix(db_path=None, feature_names: list[str] | None = No
     context_df = df[context_cols].copy()
 
     model_df = pd.get_dummies(df.copy(), columns=[c for c in ["plant_area", "shift"] if c in df.columns], drop_first=False, dtype=float)
-    drop_cols = [c for c in ["date", "has_deficit", "actual_headcount", "deficit_count", "absentee_rate"] if c in model_df.columns]
+    drop_cols = [c for c in ["date", "has_deficit", "actual_headcount", "deficit_count", "absentee_rate", "scheduled_headcount"] if c in model_df.columns]
     X = model_df.drop(columns=drop_cols)
     obj_cols = X.select_dtypes(include=["object", "category"]).columns.tolist()
     if obj_cols:
@@ -111,11 +111,23 @@ def run_inference(
         )
 
     metrics = {}
+    split_date = metadata.get("split_date")
+    if split_date:
+        test_mask = pd.to_datetime(raw_df["date"]) >= pd.Timestamp(split_date)
+    else:
+        test_mask = slice(None)
+
     if "actual_headcount" in raw_df.columns:
-        metrics["regression"] = evaluate_regression(raw_df["actual_headcount"], pred_headcount)
+        metrics["regression"] = evaluate_regression(
+            raw_df.loc[test_mask, "actual_headcount"], pred_headcount[test_mask]
+        )
     if "has_deficit" in raw_df.columns:
-        metrics["classification_xgboost"] = evaluate_classification(raw_df["has_deficit"], prob_xgboost, threshold=th_xgboost)
-        metrics["classification_calibrated"] = evaluate_classification(raw_df["has_deficit"], prob_calibrated, threshold=th_calibrated)
+        metrics["classification_xgboost"] = evaluate_classification(
+            raw_df.loc[test_mask, "has_deficit"], prob_xgboost[test_mask], threshold=th_xgboost
+        )
+        metrics["classification_calibrated"] = evaluate_classification(
+            raw_df.loc[test_mask, "has_deficit"], prob_calibrated[test_mask], threshold=th_calibrated
+        )
         metrics["classification_best"] = metrics[
             "classification_xgboost" if best_meta["name"] == "Modelo 2 (XGBoost)" else "classification_calibrated"
         ]

@@ -59,7 +59,7 @@ Importante:
 
 ## 3. Graficos Actuales En La UI
 
-## 3.1 Narrativa Explicativa Del Modelo
+## 3.1 ¿Por que podria faltar personal? (Narrativa explicativa)
 
 No es un grafico, pero aparece arriba del resto.
 
@@ -76,17 +76,17 @@ Como leerlo:
 
 ---
 
-## 3.2 Factores Que Mas Explican El Riesgo De Deficit
+## 3.2 ¿Por que se produce el deficit de personal? (Riesgo de deficit)
 
 Este grafico responde:
 
-- por que el modelo cree que hay riesgo de quedar corto de personal
+- por que el modelo detecta riesgo de deficit de personal
 
 Partes:
 
 - eje Y: factores explicativos
-- eje X: `Impacto medio absoluto (SHAP)`
-- color: `Empuje neto del riesgo`
+- eje X: `Cuánto influye`
+- color: `Aumenta o reduce el riesgo`
 
 Interpretacion:
 
@@ -100,7 +100,7 @@ Pregunta de negocio que responde:
 
 ---
 
-## 3.3 Factores Que Mas Explican La Dotacion Disponible
+## 3.3 ¿Que influye en el personal disponible? (Dotacion disponible)
 
 Este grafico responde:
 
@@ -109,8 +109,8 @@ Este grafico responde:
 Partes:
 
 - eje Y: factores explicativos
-- eje X: `Impacto medio absoluto (SHAP)`
-- color: `Empuje neto sobre la dotacion`
+- eje X: `Cuánto influye`
+- color: `Aumenta o reduce la dotacion`
 
 Interpretacion:
 
@@ -123,13 +123,13 @@ Pregunta de negocio que responde:
 
 ---
 
-## 3.4 Drivers Del Riesgo Por Segmento
+## 3.4 ¿En que turno impacta mas cada factor? (Drivers por segmento)
 
 Este grafico es un heatmap.
 
 Responde:
 
-- en que segmento operativo pega mas cada factor
+- en que segmento operativo impacta mas cada factor
 
 Segmento segun dominio:
 
@@ -141,7 +141,7 @@ Partes:
 
 - eje X: segmento
 - eje Y: factor
-- color: `Empuje neto del riesgo`
+- color: `Efecto sobre el riesgo`
 
 Interpretacion:
 
@@ -156,7 +156,7 @@ Pregunta de negocio que responde:
 
 ## 3.5 Grafico Inferior Derecho Segun Dominio
 
-### Restaurant: Por Que Un Rol Critico Aparece Tensionado
+### Restaurant: ¿Por que falta el rol de garzon? (Rol critico)
 
 Este grafico reemplaza el scatter generico.
 
@@ -166,10 +166,10 @@ Responde:
 
 Partes:
 
-- selector: `Rol crítico a explicar`
+- selector: `Seleccione un rol`
 - eje Y: factores que explican el deficit del rol
-- eje X: `Impacto medio absoluto sobre el déficit del rol`
-- color: `Empuje neto del déficit del rol`
+- eje X: `Cuanto influye en la falta de este rol`
+- color: `Aumenta o reduce el deficit del rol`
 
 Interpretacion:
 
@@ -202,7 +202,7 @@ Pregunta de negocio que responde:
 
 ---
 
-## 3.6 Explicaciones De Segmentos Mas Sensibles
+## 3.6 Detalle de los turnos con mayor riesgo (Explicaciones por segmento)
 
 Es una tabla, no un grafico.
 
@@ -731,14 +731,14 @@ Por eso en el grafico final no estas viendo datos crudos, sino:
 
 Una lectura simple y accionable seria:
 
-1. este grafico muestra que factores hacen mas probable quedar cortos
-2. este otro muestra en que franja pegan mas fuerte
-3. este grafico por rol muestra por que `garzon` o cocina aparece tensionado
+1. este grafico muestra que factores hacen mas probable el deficit
+2. este otro muestra en que turno impactan mas fuerte
+3. este grafico por rol muestra por que `garzon` o cocina aparece con riesgo de deficit
 4. esta tabla muestra ejemplos concretos de turnos sensibles
 
 La decision esperada no es "creerle al modelo porque si", sino:
 
-- reforzar una franja puntual
+- reforzar un turno puntual
 - mover personal cross-trained
 - anticipar reemplazos
 - limitar sobrecarga de dias consecutivos
@@ -757,19 +757,19 @@ La decision esperada no es "creerle al modelo porque si", sino:
 
 ## 11. Resumen Ejecutivo
 
-Si quieres leer la UI rapido:
+Si quiere leer la UI rapidamente:
 
 1. narrativa explicativa: donde mirar primero
-2. riesgo de deficit: que esta empujando el problema
-3. dotacion disponible: que sostiene o debilita la capacidad real
-4. heatmap: donde pega mas
+2. ¿Por que se produce el deficit de personal?: que esta generando el problema
+3. ¿Que influye en el personal disponible?: que sostiene o afecta la capacidad real
+4. ¿En que turno impacta mas cada factor?: donde afecta mas
 5. grafico por rol o scatter: por que sucede y desde que umbral
 6. tabla final: ejemplos concretos
 
-Con eso puedes responder cinco preguntas clave:
+Con eso puede responder cinco preguntas clave:
 
-- donde me voy a quedar corto
-- por que me voy a quedar corto
+- donde habra deficit
+- por que habra deficit
 - que rol esta mas expuesto
 - que factor pesa mas en cada franja
 - que accion deberia tomar primero

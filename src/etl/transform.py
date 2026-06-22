@@ -4,7 +4,6 @@ import logging
 
 import numpy as np
 import pandas as pd
-from sklearn.impute import KNNImputer
 
 from config.settings import PHYSIO_RANGES
 
@@ -72,7 +71,7 @@ def remove_artifacts(bio_df: pd.DataFrame) -> pd.DataFrame:
 
 # --- Paso 3 ---
 def impute_missing_values(bio_df: pd.DataFrame) -> pd.DataFrame:
-    """Imputa NaN: interpolacion lineal para gaps <=2 dias, KNN para gaps >2."""
+    """Imputa NaN sin fuga temporal: forward-fill para gaps cortos, expanding mean para gaps largos."""
     df = bio_df.copy()
     bio_cols_present = [c for c in BIOMETRIC_COLS if c in df.columns]
     if not bio_cols_present:
@@ -87,45 +86,43 @@ def impute_missing_values(bio_df: pd.DataFrame) -> pd.DataFrame:
             if series.isna().sum() == 0:
                 continue
 
-            # Identificar gaps consecutivos
             is_null = series.isna()
             gap_groups = (~is_null).cumsum()
             gap_sizes = is_null.groupby(gap_groups).transform("sum")
 
-            # Interpolacion lineal para gaps <= 2
             short_gap_mask = is_null & (gap_sizes <= 2)
             if short_gap_mask.any():
-                interpolated = series.interpolate(method="linear")
-                series[short_gap_mask] = interpolated[short_gap_mask]
+                series = series.ffill()
+
+            # Gaps > 2 dias: expanding mean (backward-looking)
+            still_null = series.isna()
+            if still_null.any():
+                expanding_mean = series.expanding(min_periods=1).mean()
+                series = series.fillna(expanding_mean)
 
             df.loc[idx, col] = series
 
-    # KNN para los NaN restantes (gaps > 2 dias)
     remaining_nulls = df[bio_cols_present].isna().any(axis=1).sum()
     if remaining_nulls > 0:
-        logger.info("Aplicando KNN Imputer para %d registros con NaN restantes", remaining_nulls)
-        for emp_id, group in df.groupby("employee_id"):
-            idx = group.index
-            subset = group[bio_cols_present]
-            if subset.isna().any().any() and subset.notna().any().any():
-                imputer = KNNImputer(n_neighbors=min(5, len(subset)))
-                imputed = imputer.fit_transform(subset)
-                df.loc[idx, bio_cols_present] = imputed
+        logger.info("NaN restantes tras imputacion temporal: %d registros", remaining_nulls)
+        df[bio_cols_present] = df[bio_cols_present].fillna(0)
 
     return df
 
 
 # --- Paso 4 ---
 def normalize_by_individual(bio_df: pd.DataFrame) -> pd.DataFrame:
-    """Z-score por employee_id para columnas biometricas."""
+    """Z-score por employee_id para columnas biometricas (sin fuga temporal)."""
     df = bio_df.copy()
+    df = df.sort_values(["employee_id", "date"]).reset_index(drop=True)
     bio_cols_present = [c for c in BIOMETRIC_COLS if c in df.columns]
 
     for col in bio_cols_present:
         zscore_col = f"{col}_zscore"
-        df[zscore_col] = df.groupby("employee_id")[col].transform(
-            lambda x: (x - x.mean()) / x.std() if x.std() > 0 else 0.0
-        )
+        roll = df.groupby("employee_id")[col]
+        exp_mean = roll.expanding(min_periods=2).mean().reset_index(level=0, drop=True)
+        exp_std = roll.expanding(min_periods=2).std().reset_index(level=0, drop=True)
+        df[zscore_col] = ((df[col] - exp_mean) / exp_std.replace(0, np.nan)).fillna(0)
 
     return df
 
@@ -200,15 +197,16 @@ def create_lag_features(bio_df: pd.DataFrame) -> pd.DataFrame:
 
 # --- Paso 5c ---
 def create_baseline_deviation_features(bio_df: pd.DataFrame) -> pd.DataFrame:
-    """Desviacion de cada metrica biometrica respecto a la media individual del empleado."""
+    """Desviacion de cada metrica biometrica respecto a la media historica del empleado (sin fuga temporal)."""
     df = bio_df.copy()
+    df = df.sort_values(["employee_id", "date"]).reset_index(drop=True)
     bio_cols_present = [c for c in BIOMETRIC_COLS if c in df.columns]
 
     for col in bio_cols_present:
         dev_col = f"{col}_baseline_dev"
-        df[dev_col] = df.groupby("employee_id")[col].transform(
-            lambda x: x - x.mean()
-        )
+        roll = df.groupby("employee_id")[col]
+        exp_mean = roll.expanding(min_periods=1).mean().reset_index(level=0, drop=True)
+        df[dev_col] = (df[col] - exp_mean).fillna(0)
 
     return df
 
