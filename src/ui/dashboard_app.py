@@ -34,6 +34,7 @@ class DomainArtifacts:
     risk_shap_effects_csv: Path
     risk_shap_explanations_csv: Path
     risk_shap_summary_json: Path
+    role_shap_global_csv: Path | None
     dashboard_images: list[Path]
     summary_title: str
     summary_subtitle: str
@@ -53,6 +54,7 @@ def get_domain_artifacts(domain: str) -> DomainArtifacts:
             risk_shap_effects_csv=CLINIC_PROCESSED_DIR / "clinic_risk_shap_effects.csv",
             risk_shap_explanations_csv=CLINIC_PROCESSED_DIR / "clinic_risk_shap_explanations.csv",
             risk_shap_summary_json=CLINIC_PROCESSED_DIR / "clinic_risk_shap_summary.json",
+            role_shap_global_csv=None,
             dashboard_images=[CLINIC_PROCESSED_DIR / "clinic_executive_dashboard.png"],
             summary_title="Clinica Ambulatoria",
             summary_subtitle="Riesgo de deficit por unidad ambulatoria y turno con foco en agenda, procedimientos, boxes activos y roles criticos.",
@@ -70,6 +72,7 @@ def get_domain_artifacts(domain: str) -> DomainArtifacts:
             risk_shap_effects_csv=RESTAURANT_PROCESSED_DIR / "restaurant_risk_shap_effects.csv",
             risk_shap_explanations_csv=RESTAURANT_PROCESSED_DIR / "restaurant_risk_shap_explanations.csv",
             risk_shap_summary_json=RESTAURANT_PROCESSED_DIR / "restaurant_risk_shap_summary.json",
+            role_shap_global_csv=RESTAURANT_PROCESSED_DIR / "restaurant_role_shap_global.csv",
             dashboard_images=[RESTAURANT_PROCESSED_DIR / "restaurant_executive_dashboard.png"],
             summary_title="Restaurant Casual Dining",
             summary_subtitle="Riesgo de déficit por franja, roles críticos y presión operativa en calendario Chile.",
@@ -86,6 +89,7 @@ def get_domain_artifacts(domain: str) -> DomainArtifacts:
         risk_shap_effects_csv=PROCESSED_DIR / "industrial_risk_shap_effects.csv",
         risk_shap_explanations_csv=PROCESSED_DIR / "industrial_risk_shap_explanations.csv",
         risk_shap_summary_json=PROCESSED_DIR / "industrial_risk_shap_summary.json",
+        role_shap_global_csv=None,
         dashboard_images=[
             PROCESSED_DIR / "headcount_actual_vs_predicted.png",
             PROCESSED_DIR / "roc_curve_staffing.png",
@@ -237,6 +241,8 @@ def load_predictions(predictions_csv: Path) -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def load_optional_csv(csv_path: Path) -> pd.DataFrame:
+    if csv_path is None:
+        return pd.DataFrame()
     if not csv_path.exists():
         return pd.DataFrame()
     df = pd.read_csv(csv_path)
@@ -518,6 +524,66 @@ def render_shap_effect_chart(df: pd.DataFrame, select_key: str, segment_label: s
     return True
 
 
+def render_restaurant_role_shap_chart(role_df: pd.DataFrame, predictions_df: pd.DataFrame) -> bool:
+    cleaned = _safe_numeric_frame(role_df, ["mean_abs_shap", "mean_shap"])
+    if cleaned.empty:
+        return False
+
+    available_roles = cleaned["role"].dropna().unique().tolist()
+    if not available_roles:
+        return False
+
+    default_role = available_roles[0]
+    role_probs = {}
+    for role in available_roles:
+        column = f"predicted_role_deficit_prob_{role}"
+        if column in predictions_df.columns:
+            role_probs[role] = float(pd.to_numeric(predictions_df[column], errors="coerce").mean())
+    if role_probs:
+        default_role = max(role_probs, key=role_probs.get)
+
+    selected_role = st.selectbox(
+        "Rol crítico a explicar",
+        available_roles,
+        index=available_roles.index(default_role),
+        key="restaurant_role_shap",
+    )
+    selected_df = cleaned[cleaned["role"] == selected_role].nlargest(8, "mean_abs_shap").copy()
+    if selected_df.empty:
+        return False
+
+    avg_prob = role_probs.get(selected_role)
+    title = f"Por qué {selected_role} aparece como rol más tensionado"
+    if avg_prob is not None:
+        title = f"Por qué {selected_role} aparece tensionado ({avg_prob:.1%} riesgo medio)"
+
+    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+    chart = (
+        alt.Chart(selected_df)
+        .mark_bar(cornerRadiusTopLeft=8, cornerRadiusTopRight=8)
+        .encode(
+            x=alt.X("mean_abs_shap:Q", title="Impacto medio absoluto sobre el déficit del rol"),
+            y=alt.Y("feature_label:N", sort="-x", title="Factor"),
+            color=alt.Color(
+                "mean_shap:Q",
+                title="Empuje neto del déficit del rol",
+                scale=alt.Scale(domainMid=0, scheme="redblue"),
+            ),
+            tooltip=[
+                alt.Tooltip("role:N", title="Rol"),
+                "feature_label:N",
+                alt.Tooltip("mean_abs_shap:Q", format=".4f", title="Impacto medio"),
+                alt.Tooltip("mean_shap:Q", format=".4f", title="Empuje neto"),
+                "impact_direction:N",
+            ],
+        )
+        .properties(height=320)
+    )
+    st.altair_chart(chart, width="stretch")
+    st.caption("Lectura: barras más largas explican mejor por qué este rol termina quedando corto. Valores rojos empujan el déficit del rol hacia arriba.")
+    return True
+
+
 def render_shap_explanations_table(df: pd.DataFrame) -> bool:
     if df.empty:
         return False
@@ -542,12 +608,13 @@ def render_shap_explanations_table(df: pd.DataFrame) -> bool:
     return True
 
 
-def render_shap_layout(domain: str, artifacts: DomainArtifacts) -> bool:
+def render_shap_layout(domain: str, artifacts: DomainArtifacts, filtered_df: pd.DataFrame) -> bool:
     risk_global_df = load_optional_csv(artifacts.risk_shap_global_csv)
     headcount_global_df = load_optional_csv(artifacts.headcount_shap_global_csv)
     risk_segment_df = load_optional_csv(artifacts.risk_shap_segment_csv)
     risk_effects_df = load_optional_csv(artifacts.risk_shap_effects_csv)
     risk_explanations_df = load_optional_csv(artifacts.risk_shap_explanations_csv)
+    role_shap_global_df = load_optional_csv(artifacts.role_shap_global_csv)
 
     if risk_global_df.empty and headcount_global_df.empty:
         return False
@@ -566,7 +633,10 @@ def render_shap_layout(domain: str, artifacts: DomainArtifacts) -> bool:
         )
     with col_right:
         render_shap_segment_heatmap(risk_segment_df, artifacts.segment_label)
-        render_shap_effect_chart(risk_effects_df, f"shap_effect_{domain}", artifacts.segment_label)
+        if domain == "restaurant" and not role_shap_global_df.empty:
+            render_restaurant_role_shap_chart(role_shap_global_df, filtered_df)
+        else:
+            render_shap_effect_chart(risk_effects_df, f"shap_effect_{domain}", artifacts.segment_label)
 
     render_shap_explanations_table(risk_explanations_df)
     return True
@@ -861,7 +931,7 @@ def render_staffing_definitions() -> None:
 
 def render_domain_specific_layout(domain: str, filtered_df: pd.DataFrame) -> None:
     artifacts = get_domain_artifacts(domain)
-    if render_shap_layout(domain, artifacts):
+    if render_shap_layout(domain, artifacts, filtered_df):
         return
 
     if domain == "restaurant":

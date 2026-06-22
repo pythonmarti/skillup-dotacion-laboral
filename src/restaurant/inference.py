@@ -8,7 +8,7 @@ import joblib
 import pandas as pd
 
 from config.restaurant_settings import CRITICAL_ROLE_TARGETS, RESTAURANT_DB_PATH, RESTAURANT_MODEL_CONFIG, RESTAURANT_PROCESSED_DIR
-from src.models.shap_analysis import generate_shap_artifacts
+from src.models.shap_analysis import generate_role_shap_global_artifacts, generate_shap_artifacts
 from src.models.staffing_models import evaluate_classification, evaluate_regression
 from src.utils.database import query_to_dataframe
 
@@ -116,6 +116,14 @@ def run_restaurant_inference(create_shap_outputs: bool = False):
             headcount_model=artifacts["regressor"],
             risk_priority_scores=scored["predicted_deficit_probability"],
             segment_cols=["service_period"],
+        )
+        generate_role_shap_global_artifacts(
+            domain="restaurant",
+            prefix="restaurant",
+            output_dir=RESTAURANT_PROCESSED_DIR,
+            X=X,
+            role_models=artifacts["roles"],
+            priority_scores=scored["predicted_deficit_probability"],
         )
 
     metrics = {

@@ -288,3 +288,42 @@ def generate_shap_artifacts(
         "headcount_global": headcount_global_path,
         "risk_summary": summary_path,
     }
+
+
+def generate_role_shap_global_artifacts(
+    *,
+    domain: str,
+    prefix: str,
+    output_dir: Path,
+    X: pd.DataFrame,
+    role_models: dict[str, object],
+    priority_scores: pd.Series | None,
+    max_rows: int = 500,
+    top_features: int = 12,
+) -> Path | None:
+    if not role_models:
+        return None
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    sample_idx = _select_sample_indices(X, priority_scores, max_rows=max_rows)
+    X_sample = X.loc[sample_idx].copy()
+
+    rows = []
+    for role, model in role_models.items():
+        role_shap = _build_tree_shap_values(model, X_sample)
+        role_df = pd.DataFrame({
+            "role": role,
+            "feature": X_sample.columns,
+            "feature_label": [humanize_feature_name(feature, domain) for feature in X_sample.columns],
+            "mean_abs_shap": np.abs(role_shap).mean(axis=0),
+            "mean_shap": role_shap.mean(axis=0),
+        }).sort_values("mean_abs_shap", ascending=False).head(top_features)
+        role_df["impact_direction"] = np.where(role_df["mean_shap"] >= 0, "Sube deficit de rol", "Baja deficit de rol")
+        rows.append(role_df)
+
+    if not rows:
+        return None
+
+    output_path = output_dir / f"{prefix}_role_shap_global.csv"
+    pd.concat(rows, ignore_index=True).to_csv(output_path, index=False)
+    return output_path
