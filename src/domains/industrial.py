@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 def run_generate(args: object) -> None:
-    employees = int(getattr(args, "employees", 200))
-    days = int(getattr(args, "days", 180))
-    seed = int(getattr(args, "seed", 42))
+    employees = int(getattr(args, "employees", None) or 200)
+    days = int(getattr(args, "days", None) or 180)
+    seed = int(getattr(args, "seed", None) or 42)
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     logger.info("[industrial] Generando datos sinteticos")
