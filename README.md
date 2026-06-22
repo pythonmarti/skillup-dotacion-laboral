@@ -3,8 +3,10 @@
 SkillUp es una plataforma de simulación, ETL, modelado, inferencia y visualización para problemas de dotación laboral. Actualmente soporta tres dominios operativos:
 
 - `industrial`: cobertura por `plant_area + shift + date`
-- `restaurant`: cobertura por `date + service_period` para un restaurante casual dining con calendario de Chile
+- `restaurant` (dominio por defecto): cobertura por `date + service_period` para un restaurante casual dining con calendario de Chile
 - `clinic`: cobertura por `date + shift + clinical_unit` para una clinica ambulatoria con agenda, procedimientos y roles criticos
+
+Cada dominio genera artefactos **SHAP** (globales y por rol crítico) para explicar predicciones de déficit, incluyendo barras de importancia global, mapas de calor por segmento, gráficos de dependencia y tablas de explicación por instancia.
 
 Además incluye un flujo documental de fichas médicas en PDF, extracción a CSV estructurado y una UI interactiva para operar pipelines y revisar dashboards.
 
@@ -247,11 +249,13 @@ uv run python scripts/run_dashboard_ui.py
 
 La UI permite:
 
-- seleccionar `industrial`, `restaurant` o `clinic`
+- seleccionar `industrial`, `restaurant` (por defecto) o `clinic`
 - ejecutar pipelines por dominio y stage
 - revisar logs de ejecución
 - visualizar KPIs y gráficos interactivos
 - consultar métricas, predicciones y artefactos por dominio
+- explorar visualizaciones **SHAP**: importancia global, mapas de calor por segmento, gráficos de dependencia y tabla de explicaciones
+- drilldown por rol crítico en restaurant (`garzón`, `cocinero_linea`, `jefe_turno`)
 - abrir una galería secundaria de imágenes estáticas generadas
 
 ---
@@ -352,8 +356,11 @@ Consulta:
 
 - `docs/arquitectura_validada.md`
 - `docs/pipeline_actualizado.md`
+- `docs/guia_lectura_graficos_shap.md` — guía de interpretación de gráficos SHAP y glosario de factores
+- `docs/supuestos.md` / `docs/supuestos_v2.md` — supuestos del sistema, diccionarios de datos y Q&A
+- `docs/pipeline_completo_flujos.drawio` / `.svg` — diagrama de arquitectura multi-dominio
 
-El segundo documento explica la arquitectura multi-dominio actual, el flujo industrial, el flujo restaurant, la UI y el pipeline de fichas médicas.
+El diagrama de arquitectura explica la estructura multi-dominio actual, el flujo industrial, el flujo restaurant, el flujo clínico y la UI.
 
 ---
 
@@ -371,7 +378,12 @@ skillup/
 │   └── skillup.db
 ├── docs/
 │   ├── arquitectura_validada.md
-│   └── pipeline_actualizado.md
+│   ├── pipeline_actualizado.md
+│   ├── guia_lectura_graficos_shap.md
+│   ├── supuestos.md
+│   ├── supuestos_v2.md
+│   ├── pipeline_completo_flujos.drawio
+│   └── pipeline_completo_flujos.svg
 ├── scripts/
 │   ├── run_pipeline.py
 │   ├── run_full_pipeline.py
@@ -391,6 +403,7 @@ skillup/
 │   ├── extraction/
 │   ├── generators/
 │   ├── models/
+│   │   └── shap_analysis.py
 │   ├── restaurant/
 │   ├── ui/
 │   └── utils/
