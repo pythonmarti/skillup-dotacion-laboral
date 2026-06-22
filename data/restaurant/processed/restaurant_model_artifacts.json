@@ -25,19 +25,10 @@
     "forecast_required_role_runner",
     "forecast_required_role_copero",
     "forecast_required_role_jefe_turno",
-    "scheduled_headcount_total",
     "scheduled_overtime_hours",
     "scheduled_avg_consecutive_work_days",
     "scheduled_avg_demand_pressure",
     "scheduled_delivery_orders_seen",
-    "scheduled_role_ayudante_cocina",
-    "scheduled_role_cajero",
-    "scheduled_role_cocinero_linea",
-    "scheduled_role_copero",
-    "scheduled_role_garzon",
-    "scheduled_role_host",
-    "scheduled_role_jefe_turno",
-    "scheduled_role_runner",
     "avg_hr_mean_bpm",
     "avg_hrv_rmssd_ms",
     "avg_sleep_duration_hours",
@@ -75,68 +66,69 @@
     "season_summer",
     "season_winter"
   ],
+  "split_date": "2025-11-22",
   "thresholds": {
-    "restaurant_xgboost": 0.6635093092918396,
-    "restaurant_calibrated": 0.5743265946706136,
+    "restaurant_xgboost": 0.47641193866729736,
+    "restaurant_calibrated": 0.591534415880839,
     "role_thresholds": {
-      "garzon": 0.5000126957893372,
-      "cocinero_linea": 0.3902614116668701,
-      "jefe_turno": 0.3629476726055145
+      "garzon": 0.4369933307170868,
+      "cocinero_linea": 0.4447486102581024,
+      "jefe_turno": 0.3651760518550873
     }
   },
   "best_classifier": {
     "name": "restaurant_calibrated",
     "path": "restaurant_deficit_classifier_calibrated.pkl",
-    "threshold": 0.5743265946706136
+    "threshold": 0.591534415880839
   },
   "metrics": {
     "regression": {
-      "MAE": 0.9915540540540543,
-      "RMSE": 1.2533255762171296,
-      "R2": 0.9615162589268238
+      "MAE": 1.0247222222222223,
+      "RMSE": 1.3518233571324652,
+      "R2": 0.9514871744187386
     },
     "restaurant_xgboost": {
-      "AUC-ROC": 0.6874796747967479,
-      "PR-AUC": 0.9144731908879169,
-      "Brier Score": 0.1391189992427826,
-      "Accuracy": 0.8040540540540541,
-      "Precision": 0.8615384615384616,
-      "Recall": 0.9105691056910569,
-      "F1-Score": 0.8853754940711462
+      "AUC-ROC": 0.7664835164835165,
+      "PR-AUC": 0.9685693528193344,
+      "Brier Score": 0.09417358040809631,
+      "Accuracy": 0.8888888888888888,
+      "Precision": 0.9071428571428571,
+      "Recall": 0.9769230769230769,
+      "F1-Score": 0.9407407407407408
     },
     "restaurant_calibrated": {
-      "AUC-ROC": 0.6803252032520325,
-      "PR-AUC": 0.9010092705997061,
-      "Brier Score": 0.13605879236783433,
-      "Accuracy": 0.8243243243243243,
-      "Precision": 0.8489208633093526,
-      "Recall": 0.959349593495935,
-      "F1-Score": 0.9007633587786259
+      "AUC-ROC": 0.7414835164835164,
+      "PR-AUC": 0.9679617227629226,
+      "Brier Score": 0.09230593829210698,
+      "Accuracy": 0.8888888888888888,
+      "Precision": 0.9071428571428571,
+      "Recall": 0.9769230769230769,
+      "F1-Score": 0.9407407407407408
     },
     "role_models": {
       "garzon": {
-        "AUC-ROC": 0.6801242236024844,
-        "PR-AUC": 0.504699500622732,
-        "Brier Score": 0.22735337913036346,
-        "Accuracy": 0.6486486486486487,
-        "Precision": 0.5588235294117647,
-        "Recall": 0.3392857142857143,
-        "F1-Score": 0.4222222222222222
+        "AUC-ROC": 0.6836734693877551,
+        "PR-AUC": 0.5656621257291163,
+        "Brier Score": 0.23839394748210907,
+        "Accuracy": 0.5694444444444444,
+        "Precision": 0.4024390243902439,
+        "Recall": 0.717391304347826,
+        "F1-Score": 0.515625
       },
       "cocinero_linea": {
-        "AUC-ROC": 0.6663673102828918,
-        "PR-AUC": 0.1796983002191183,
-        "Brier Score": 0.11096606403589249,
-        "Accuracy": 0.831081081081081,
-        "Precision": 0.1,
-        "Recall": 0.058823529411764705,
-        "F1-Score": 0.07407407407407407
+        "AUC-ROC": 0.7653890824622531,
+        "PR-AUC": 0.29736967222275,
+        "Brier Score": 0.13167548179626465,
+        "Accuracy": 0.7708333333333334,
+        "Precision": 0.3,
+        "Recall": 0.42857142857142855,
+        "F1-Score": 0.35294117647058826
       },
       "jefe_turno": {
-        "AUC-ROC": 0.5287356321839081,
-        "PR-AUC": 0.0277451757864129,
-        "Brier Score": 0.02173841930925846,
-        "Accuracy": 0.9797297297297297,
+        "AUC-ROC": 0.5747252747252747,
+        "PR-AUC": 0.12614763150997937,
+        "Brier Score": 0.09490666538476944,
+        "Accuracy": 0.9027777777777778,
         "Precision": 0.0,
         "Recall": 0.0,
         "F1-Score": 0.0

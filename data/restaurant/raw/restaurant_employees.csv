@@ -71,5 +71,3 @@ RST_069,copero,22,M,26.9,1,full_time,mixed,False,,5.8,0,False,False,2024-12-31
 RST_070,cocinero_linea,25,M,22.5,1,full_time,evening,True,ayudante_cocina,3.2,0,False,False,2024-12-31
 RST_071,garzon,24,M,27.3,0,full_time,mixed,True,runner,5.2,3,False,False,2025-12-31
 RST_072,garzon,43,M,25.2,4,part_time,mixed,False,,6.5,0,True,False,2021-12-31
-RST_073,cocinero_linea,29,F,29.4,0,full_time,midday,False,,8.3,0,False,False,2025-12-31
-RST_074,cajero,32,M,18.0,3,full_time,evening,True,host,9.5,1,True,False,2023-01-01

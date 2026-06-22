@@ -1,6 +1,5 @@
 {
   "feature_names": [
-    "scheduled_headcount",
     "hr_mean_bpm",
     "hrv_rmssd_ms",
     "stress_score",
@@ -40,37 +39,37 @@
     "shift_vespertino"
   ],
   "thresholds": {
-    "Modelo 2 (XGBoost)": 0.3931993544101715,
-    "Modelo 3 (Calibrado)": 0.4552287608385086
+    "Modelo 2 (XGBoost)": 0.3936031460762024,
+    "Modelo 3 (Calibrado)": 0.4341841861605644
   },
   "metrics": {
     "Modelo 1 (Headcount)": {
-      "MAE": 0.40709401709401705,
-      "RMSE": 0.5590039982732414,
-      "R2": 0.9896487524158949
+      "MAE": 1.2227991452991454,
+      "RMSE": 1.597457582064615,
+      "R2": 0.9132982753378588
     },
     "Modelo 2 (XGBoost)": {
-      "AUC-ROC": 0.9951016865079365,
-      "PR-AUC": 0.9823093907766212,
-      "Brier Score": 0.021114898845553398,
-      "Accuracy": 0.9743589743589743,
-      "Precision": 0.95,
-      "Recall": 0.9047619047619048,
-      "F1-Score": 0.926829268292683
+      "AUC-ROC": 0.9396726595715119,
+      "PR-AUC": 0.7973345424915976,
+      "Brier Score": 0.07968762516975403,
+      "Accuracy": 0.8995726495726496,
+      "Precision": 0.7777777777777778,
+      "Recall": 0.7216494845360825,
+      "F1-Score": 0.7486631016042781
     },
     "Modelo 3 (Calibrado)": {
-      "AUC-ROC": 0.9935825892857144,
-      "PR-AUC": 0.9756077411606576,
-      "Brier Score": 0.02133701397443641,
-      "Accuracy": 0.9743589743589743,
-      "Precision": 0.9615384615384616,
-      "Recall": 0.8928571428571429,
-      "F1-Score": 0.9259259259259259
+      "AUC-ROC": 0.9436324228193514,
+      "PR-AUC": 0.8004535770084013,
+      "Brier Score": 0.07522668993527164,
+      "Accuracy": 0.8888888888888888,
+      "Precision": 0.7227722772277227,
+      "Recall": 0.7525773195876289,
+      "F1-Score": 0.7373737373737373
     }
   },
   "best_classifier": {
-    "name": "Modelo 2 (XGBoost)",
-    "path": "deficit_classifier_xgboost.pkl",
-    "threshold": 0.3931993544101715
+    "name": "Modelo 3 (Calibrado)",
+    "path": "deficit_classifier_calibrated.pkl",
+    "threshold": 0.4341841861605644
   }
 }
