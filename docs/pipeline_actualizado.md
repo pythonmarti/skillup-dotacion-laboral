@@ -8,6 +8,7 @@ Dominios activos:
 
 - `industrial`
 - `restaurant`
+- `clinic`
 
 Además existen dos capacidades transversales:
 
@@ -29,12 +30,13 @@ Ejecución de pipelines desde Docker:
 ```bash
 make pipeline DOMAIN=industrial STAGE=full
 make pipeline DOMAIN=restaurant STAGE=full ARGS="--employees 72 --days 180 --seed 42"
+make pipeline DOMAIN=clinic STAGE=full ARGS="--employees 96 --days 180 --seed 42"
 ```
 
 Comando principal en local:
 
 ```bash
-uv run python scripts/run_pipeline.py --domain <industrial|restaurant> --stage <generate|etl|train|infer|report|full>
+uv run python scripts/run_pipeline.py --domain <industrial|restaurant|clinic> --stage <generate|etl|train|infer|report|full>
 ```
 
 Atajo para pipeline completo:
@@ -90,18 +92,23 @@ plant_area + shift + date
    - crea `biometrics.csv`
    - crea `absenteeism.csv`
 
-2. `etl`
-   - limpia biometría
+ 2. `etl`
+   - limpia biometría (imputación con forward-fill + expanding mean, sin KNN)
+   - normaliza con ventana expansiva (sin fuga de datos futuros)
    - agrega variables a nivel área-turno-día
    - persiste `ml_features` en SQLite
 
-3. `train`
+ 3. `train`
+   - split temporal en train / validación / test (64% / 16% / 20%)
    - entrena regresor de headcount
-   - entrena clasificador de déficit
-   - entrena clasificador calibrado
-   - guarda artefactos en `data/processed/`
+   - selecciona el mejor clasificador (XGBoost vs Calibrado) usando solo validación
+   - reentrena el ganador en train+val y evalúa en test ciego
+   - guarda `split_date` en metadata para filtrar métricas en inferencia
+   - artefactos en `data/processed/`
 
-4. `infer`
+ 4. `infer`
+   - genera predicciones para todos los datos
+   - calcula métricas solo sobre el período test (post `split_date`)
    - genera `staffing_inference_predictions.csv`
    - genera `staffing_inference_metrics.json`
 
@@ -237,7 +244,89 @@ Objetivo:
 - entregar una vista de una plana para decisiones de staffing
 - resaltar peak hours, riesgo, déficit por rol y señales fisiológicas
 
-## 7. Flujo documental de fichas médicas
+## 7. Dominio clinic
+
+### 7.1 Unidad de decisión
+
+```text
+date + shift + clinical_unit
+```
+
+### 7.2 Configuración del dominio
+
+Archivo:
+
+- `config/clinic_settings.py`
+
+Define:
+
+- directorios del dominio
+- base SQLite del dominio
+- unidades clínicas (consulta_general, especialidades, procedimientos_ambulatorios, imagenologia, toma_muestras)
+- turnos (morning, evening)
+- roles críticos (medico, enfermera, tens)
+- configuración del modelado
+
+### 7.3 Datos raw generados
+
+Ubicación:
+
+```text
+data/clinic/raw/
+```
+
+Archivos:
+
+- `clinic_employees.csv`
+- `clinic_calendar.csv`
+- `clinic_patient_flow.csv`
+- `clinic_work_records.csv`
+- `clinic_biometrics.csv`
+- `clinic_absenteeism.csv`
+
+### 7.4 Modelos clinic
+
+Modelos:
+
+- regresor de dotación total
+- clasificador general de déficit (XGBoost + Calibrado)
+- clasificadores por rol crítico
+
+Roles críticos actuales:
+
+- `medico`
+- `enfermera`
+- `tens`
+
+### 7.5 Inferencia clinic
+
+Salidas:
+
+- `clinic_staffing_predictions.csv`
+- `clinic_staffing_metrics.json`
+
+Incluye:
+
+- dotación predicha
+- probabilidad de déficit general
+- riesgo de déficit por rol crítico
+- recomendación operativa textual
+
+### 7.6 Pipeline completo clinic
+
+Docker:
+
+```bash
+make pipeline DOMAIN=clinic STAGE=full ARGS="--employees 96 --days 180 --seed 42"
+```
+
+Local:
+
+```bash
+uv run python scripts/run_pipeline.py --domain clinic --stage full --employees 96 --days 180 --seed 42
+```
+
+## 8. Flujo documental de fichas médicas
 
 Capacidades:
 
@@ -259,7 +348,7 @@ Scripts:
 - `08_forms_to_model_metrics.py`
 - `09_run_inference.py`
 
-## 8. UI interactiva
+## 9. UI interactiva
 
 La UI está implementada con Streamlit.
 
@@ -290,7 +379,7 @@ Capacidades:
 - consultar predicciones y métricas
 - revisar artefactos raw y processed
 
-## 9. Cómo interpretar la dotación
+## 10. Cómo interpretar la dotación
 
 - **Dotación actual**: personal que efectivamente estuvo disponible u operando.
 - **Dotación requerida**: personal que el negocio necesita para cubrir la demanda.
@@ -303,7 +392,7 @@ si dotación predicha < dotación requerida
 => existe riesgo de déficit esperado
 ```
 
-## 10. Comandos recomendados
+## 11. Comandos recomendados
 
 ### Industrial completo
 
@@ -347,6 +436,20 @@ Local:
 uv run python scripts/run_pipeline.py --domain restaurant --stage report
 ```
 
+### Clinic completo
+
+Docker:
+
+```bash
+make pipeline DOMAIN=clinic STAGE=full ARGS="--employees 96 --days 180 --seed 42"
+```
+
+Local:
+
+```bash
+uv run python scripts/run_pipeline.py --domain clinic --stage full --employees 96 --days 180 --seed 42
+```
+
 ### UI local
 
 ```bash
@@ -359,14 +462,15 @@ uv run python scripts/run_dashboard_ui.py
 make up
 ```
 
-## 11. Estado actual del proyecto
+## 12. Estado actual del proyecto
 
 Estado operativo hoy:
 
 - runner multi-dominio implementado
 - dominio industrial operativo
 - dominio restaurant operativo
+- dominio clinic operativo
 - flujo de fichas médicas operativo
 - UI interactiva operativa
 
-La arquitectura ya está preparada para incorporar un tercer dominio sin rediseñar el core del sistema.
+La arquitectura ya está preparada para incorporar nuevos dominios sin rediseñar el core del sistema.
