@@ -959,7 +959,7 @@ def main() -> None:
 
     with st.sidebar:
         st.header("Control")
-        domain = st.selectbox("Dominio", ["industrial", "restaurant", "clinic"], index=0)
+        domain = st.selectbox("Dominio", ["restaurant", "clinic", "industrial"], index=0)
         stage = st.selectbox("Stage", ["generate", "etl", "train", "infer", "report", "full"], index=5)
         default_employees = 72 if domain == "restaurant" else (96 if domain == "clinic" else 200)
         employees = st.number_input("Employees", min_value=1, value=default_employees, step=1)
