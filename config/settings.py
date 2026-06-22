@@ -14,6 +14,17 @@ NUM_EMPLOYEES = 200
 DAYS_TO_SIMULATE = 180
 RANDOM_SEED = 42
 
+# --- Chile holidays used by industrial calendar simulation ---
+CHILE_HOLIDAYS_2025 = {
+    "2025-09-18": "Independencia Nacional",
+    "2025-09-19": "Glorias del Ejercito",
+    "2025-10-13": "Encuentro de Dos Mundos",
+    "2025-10-31": "Iglesias Evangelicas y Protestantes",
+    "2025-11-01": "Todos los Santos",
+    "2025-12-08": "Inmaculada Concepcion",
+    "2025-12-25": "Navidad",
+}
+
 # --- Physiological ranges (valid measurement bounds) ---
 PHYSIO_RANGES = {
     "hr_mean_bpm": (30, 220),

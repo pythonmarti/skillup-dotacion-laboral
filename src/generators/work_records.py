@@ -4,18 +4,19 @@ import logging
 import numpy as np
 import pandas as pd
 
-from config.settings import PLANT_AREAS, SHIFTS
+from config.settings import CHILE_HOLIDAYS_2025, PLANT_AREAS, SHIFTS
 
 logger = logging.getLogger(__name__)
 
-# Días festivos oficiales mexicanos (mes, día)
-_MEXICAN_HOLIDAYS = [
-    (1, 1), (2, 5), (3, 21), (5, 1), (9, 16), (11, 20), (12, 25),
-]
+# Festivos chilenos base del periodo industrial simulado.
+_CHILE_HOLIDAYS = {
+    (pd.Timestamp(date).month, pd.Timestamp(date).day)
+    for date in CHILE_HOLIDAYS_2025
+}
 
 
 def _is_holiday(date: pd.Timestamp) -> bool:
-    return (date.month, date.day) in _MEXICAN_HOLIDAYS
+    return (date.month, date.day) in _CHILE_HOLIDAYS
 
 
 def generate_work_records(
